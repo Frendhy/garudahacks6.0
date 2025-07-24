@@ -489,8 +489,10 @@
         <nav class="hidden md:flex space-x-8">
             <a href="#tentang" class="nav-link font-medium hover:text-yellow-300">Tentang</a>
             <a href="#peran" class="nav-link font-medium hover:text-yellow-300">Peran</a>
-            <a href="login_form.php" class="nav-link font-medium hover:text-yellow-300 bg-transparent border-none text-white cursor-pointer">Login</a>
-            <a href="register_form.php" class="bg-yellow-400 text-black px-4 rounded-lg font-medium hover:bg-yellow-500 transition-colors">Daftar</a>
+            <a href="login_form.php"
+                class="nav-link font-medium hover:text-yellow-300 bg-transparent border-none text-white cursor-pointer">Login</a>
+            <a href="register_form.php"
+                class="bg-yellow-400 text-black px-4 rounded-lg font-medium hover:bg-yellow-500 transition-colors">Daftar</a>
         </nav>
         <button class="md:hidden text-white" onclick="toggleMobileMenu()">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -529,10 +531,10 @@
                 Equalizer adalah platform kolaboratif yang menghubungkan pelajar, donatur, dan relawan untuk menciptakan
                 akses pendidikan yang merata di seluruh Indonesia.
             </p>
-            <button class="cta-button px-8 py-4 text-lg font-semibold rounded-xl animate-fade-in-up animate-glow"
-                style="animation-delay: 0.6s;" onclick="openModal()">
-                Gabung Sekarang
-            </button>
+            <a href="register_form.php"
+                class="cta-button px-8 py-4 text-lg font-semibold rounded-xl animate-fade-in-up animate-glow"
+                style="animation-delay: 0.6s;">Gabung Sekarang</a>
+
         </div>
         <div class="animate-fade-in-right floating" style="animation-delay: 0.4s;">
             <img src="image/logo_icon_white.png" alt="Hero Image" class="hero-image max-w-full rounded-3xl">
@@ -557,10 +559,10 @@
                     Dapatkan bantuan biaya pendidikan dan bimbingan untuk meraih impianmu.
                 </p>
                 <div class="mt-6 text-center">
-                    <button
+                    <a href="register_form_pelajar.php"
                         class="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg text-sm font-medium transition-colors">
                         Daftar Sebagai Pelajar
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -576,10 +578,10 @@
                     Salurkan bantuan secara transparan dan lihat dampaknya secara langsung.
                 </p>
                 <div class="mt-6 text-center">
-                    <button
+                    <a href="register_form_donatur.php"
                         class="bg-yellow-500 hover:bg-yellow-600 px-6 py-2 rounded-lg text-sm font-medium text-black transition-colors">
                         Daftar Sebagai Donatur
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -595,10 +597,10 @@
                     Berikan waktumu untuk mengajar, membimbing, atau mendukung sistem kami.
                 </p>
                 <div class="mt-6 text-center">
-                    <button
+                    <a href="register_form_relawan.php"
                         class="bg-purple-500 hover:bg-purple-600 px-6 py-2 rounded-lg text-sm font-medium transition-colors">
                         Daftar Sebagai Relawan
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>

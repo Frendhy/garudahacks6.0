@@ -498,6 +498,7 @@
         const documentVerifier = new DocumentVerifier();
 
         // Load user data on page load
+        /*
         document.addEventListener('DOMContentLoaded', function() {
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             const isLoggedIn = localStorage.getItem('isLoggedIn');
@@ -518,6 +519,7 @@
             // Initialize with profile section
             showSection('profile');
         });
+        */
 
         function showSection(section) {
             // Update active button
