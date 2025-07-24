@@ -697,6 +697,220 @@
                         </div>
                     `;
                     break;
+                    case 'requests':
+                    content.innerHTML = `
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-2xl font-bold">Permintaan Bantuan Saya</h3>
+                            ${studentData.verificationStatus === 'verified' ? 
+                                '<button onclick="openModal()" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold transition-colors">+ Tambah Permintaan</button>' :
+                                '<div class="text-sm text-yellow-400">⚠️ Verifikasi dokumen terlebih dahulu untuk menambah permintaan</div>'
+                            }
+                        </div>
+                        
+                        <div class="grid gap-6">
+                            ${studentData.requests.map(request => `
+                                <div class="card rounded-xl p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="text-xl font-bold">${request.item}</h4>
+                                            <p class="text-sm opacity-80 mt-1">${request.detail}</p>
+                                        </div>
+                                        <span class="badge ${request.status}">${request.status}</span>
+                                    </div>
+                                    
+                                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <p class="text-sm opacity-80">Target Biaya:</p>
+                                            <p class="text-lg font-bold">Rp ${request.amount.toLocaleString('id-ID')}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm opacity-80">Terkumpul:</p>
+                                            <p class="text-lg font-bold text-green-400">Rp ${request.collected.toLocaleString('id-ID')}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <div class="flex justify-between text-sm mb-2">
+                                            <span>Progress</span>
+                                            <span>${request.progress}%</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: ${request.progress}%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                            Lihat Detail
+                                        </button>
+                                        ${request.status === 'completed' ? 
+                                            '<button class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-lg text-sm transition-colors">Upload Bukti</button>' : ''
+                                        }
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+case 'received':
+                    content.innerHTML = `
+                        <h3 class="text-2xl font-bold mb-6">Bantuan yang Diterima</h3>
+                        
+                        <div class="grid gap-6">
+                            ${studentData.received.map(item => `
+                                <div class="card rounded-xl p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="text-xl font-bold">${item.item}</h4>
+                                            <p class="text-sm opacity-80">Dari: ${item.donor}</p>
+                                            <p class="text-sm opacity-80">Tanggal: ${new Date(item.date).toLocaleDateString('id-ID')}</p>
+                                        </div>
+                                        <span class="badge ${item.status}">${item.status}</span>
+                                    </div>
+                                    
+                                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <p class="text-sm opacity-80">Jumlah Bantuan:</p>
+                                            <p class="text-lg font-bold text-green-400">Rp ${item.amount.toLocaleString('id-ID')}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm opacity-80">Status:</p>
+                                            <p class="text-lg font-bold">${item.status === 'completed' ? 'Selesai' : 'Dalam Proses'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    ${item.proof ? `
+                                        <div class="mb-4">
+                                            <p class="text-sm opacity-80 mb-2">Bukti Penggunaan:</p>
+                                            <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=" alt="Bukti" class="document-preview">
+                                        </div>
+                                    ` : ''}
+                                    
+                                    <div class="flex space-x-2">
+                                        <button class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                            Hubungi Donor
+                                        </button>
+                                        <button class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                            Kirim Terima Kasih
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            
+                            ${studentData.received.length === 0 ? 
+                                '<div class="card rounded-xl p-8 text-center"><p class="text-gray-400">Belum ada bantuan yang diterima</p></div>' : ''
+                            }
+                        </div>
+                    `;
+                    break;
+                    case 'validation':
+                    content.innerHTML = `
+                        <h3 class="text-2xl font-bold mb-6">Upload Bukti Penggunaan Bantuan</h3>
+                        <p class="mb-6 opacity-80">Upload foto atau dokumen sebagai bukti bahwa bantuan telah digunakan sesuai tujuan.</p>
+                        
+                        <div class="grid gap-6">
+                            ${studentData.received.filter(item => item.status === 'completed' && !item.proof).map(item => `
+                                <div class="card rounded-xl p-6">
+                                    <h4 class="text-xl font-bold mb-4">🎯 ${item.item}</h4>
+                                    <p class="text-sm opacity-80 mb-4">Bantuan dari: ${item.donor} - Rp ${item.amount.toLocaleString('id-ID')}</p>
+                                    
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2">Upload Bukti (Foto/Dokumen):</label>
+                                            <input type="file" accept="image/*,application/pdf" class="input-field" onchange="previewProof(this, ${item.id})">
+                                        </div>
+                                        
+                                        <div id="proof-preview-${item.id}"></div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2">Keterangan Penggunaan:</label>
+                                            <textarea class="input-field h-24" placeholder="Jelaskan bagaimana bantuan ini digunakan..."></textarea>
+                                        </div>
+                                        
+                                        <button onclick="submitProof(${item.id})" class="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold transition-colors">
+                                            📤 Submit Bukti
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            
+                            ${studentData.received.filter(item => item.status === 'completed' && !item.proof).length === 0 ? 
+                                '<div class="card rounded-xl p-8 text-center"><p class="text-gray-400">Tidak ada bantuan yang perlu divalidasi</p></div>' : ''
+                            }
+                        </div>
+                    `;
+                    break;
+                    case 'courses':
+                    content.innerHTML = `
+                        <h3 class="text-2xl font-bold mb-6">Kursus dan Pembelajaran</h3>
+                        <p class="mb-6 opacity-80">Akses kursus gratis yang disediakan oleh platform Equalizer untuk mendukung pendidikan Anda.</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-6">
+                            ${studentData.courses.map(course => `
+                                <div class="card rounded-xl p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="text-xl font-bold">${course.name}</h4>
+                                            <p class="text-sm opacity-80">Mentor: ${course.mentor}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm opacity-80">Progress</p>
+                                            <p class="text-lg font-bold text-blue-400">${course.progress}%</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: ${course.progress}%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors flex-1">
+                                            Lanjutkan Belajar
+                                        </button>
+                                        <button class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                            Chat Mentor
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <!-- Available Courses -->
+                        <div class="mt-12">
+                            <h4 class="text-xl font-bold mb-6">Kursus Tersedia</h4>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                <div class="card rounded-xl p-6 text-center">
+                                    <div class="text-4xl mb-4">🧮</div>
+                                    <h5 class="text-lg font-bold mb-2">Matematika Lanjutan</h5>
+                                    <p class="text-sm opacity-80 mb-4">Pelajari konsep matematika tingkat lanjut</p>
+                                    <button class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm transition-colors">
+                                        Mulai Kursus
+                                    </button>
+                                </div>
+                                
+                                <div class="card rounded-xl p-6 text-center">
+                                    <div class="text-4xl mb-4">🔬</div>
+                                    <h5 class="text-lg font-bold mb-2">Kimia Dasar</h5>
+                                    <p class="text-sm opacity-80 mb-4">Memahami konsep dasar ilmu kimia</p>
+                                    <button class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm transition-colors">
+                                        Mulai Kursus
+                                    </button>
+                                </div>
+                                
+                                <div class="card rounded-xl p-6 text-center">
+                                    <div class="text-4xl mb-4">💻</div>
+                                    <h5 class="text-lg font-bold mb-2">Coding Pemula</h5>
+                                    <p class="text-sm opacity-80 mb-4">Belajar programming dari nol</p>
+                                    <button class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm transition-colors">
+                                        Mulai Kursus
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
             }
         }
 
