@@ -48,14 +48,25 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
 
-        .schedule-item {
-            border-left: 4px solid var(--highlight);
-            background: rgba(255, 255, 255, 0.05);
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
         }
 
-        .schedule-item:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .input-field:focus {
+            outline: none;
+            border-color: var(--highlight);
+            box-shadow: 0 0 20px rgba(250, 229, 70, 0.3);
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .volunteer-button {
@@ -89,7 +100,7 @@
         <!-- Welcome Section -->
         <div class="mb-8">
             <h1 class="text-3xl md:text-4xl font-bold mb-2" id="volunteerName">Dashboard Relawan</h1>
-            <p class="text-lg opacity-90">Kelola aktivitas mengajar dan dampak kontribusi Anda</p>
+            <p class="text-lg opacity-90">Kelola aktivitas mengajar dan dampak kontribusi Anda. Cek WhatsApp Anda secara berkala.</p>
         </div>
 
         <!-- Stats Cards -->
@@ -97,28 +108,10 @@
             <div class="card rounded-xl p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="text-lg font-semibold">Jam Mengajar</h3>
-                        <p class="text-2xl font-bold text-purple-400">45</p>
-                    </div>
-                    <div class="text-3xl">⏰</div>
-                </div>
-            </div>
-            <div class="card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
                         <h3 class="text-lg font-semibold">Siswa Diajar</h3>
                         <p class="text-2xl font-bold text-blue-400">28</p>
                     </div>
                     <div class="text-3xl">👥</div>
-                </div>
-            </div>
-            <div class="card rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold">Kelas Aktif</h3>
-                        <p class="text-2xl font-bold text-green-400">4</p>
-                    </div>
-                    <div class="text-3xl">📚</div>
                 </div>
             </div>
             <div class="card rounded-xl p-6">
@@ -132,106 +125,47 @@
             </div>
         </div>
 
-        <!-- Today's Schedule -->
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold mb-4">Jadwal Hari Ini</h2>
-            <div class="card rounded-xl p-6">
-                <div class="space-y-4">
-                    <div class="schedule-item p-4 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="text-2xl">📊</div>
-                                <div>
-                                    <h3 class="font-semibold">Matematika - Kelas 10</h3>
-                                    <p class="text-sm opacity-70">09:00 - 10:30 WIB</p>
-                                    <p class="text-xs opacity-60">15 siswa</p>
-                                </div>
-                            </div>
-                            <button class="volunteer-button px-4 py-2 rounded-lg text-sm font-medium">
-                                Mulai Kelas
-                            </button>
-                        </div>
+        <!-- Profile Form -->
+        <div class="card rounded-xl p-8">
+            <h3 class="text-2xl font-bold mb-6">Profil Saya</h3>
+            <form class="space-y-4">
+                <!-- Baris 1 -->
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Nama Lengkap:</label>
+                        <input type="text" value="${volunteerData.name}" class="input-field" readonly>
                     </div>
-                    <div class="schedule-item p-4 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="text-2xl">🇬🇧</div>
-                                <div>
-                                    <h3 class="font-semibold">Bahasa Inggris - Kelas 11</h3>
-                                    <p class="text-sm opacity-70">13:00 - 14:30 WIB</p>
-                                    <p class="text-xs opacity-60">12 siswa</p>
-                                </div>
-                            </div>
-                            <button class="volunteer-button px-4 py-2 rounded-lg text-sm font-medium">
-                                Mulai Kelas
-                            </button>
-                        </div>
-                    </div>
-                    <div class="schedule-item p-4 rounded-lg opacity-60">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="text-2xl">⚗️</div>
-                                <div>
-                                    <h3 class="font-semibold">Kimia - Kelas 12</h3>
-                                    <p class="text-sm opacity-70">15:00 - 16:30 WIB</p>
-                                    <p class="text-xs opacity-60">8 siswa</p>
-                                </div>
-                            </div>
-                            <span class="text-sm text-gray-400">Selesai</span>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Status (Mahasiswa/Alumni & Institusi):</label>
+                        <input type="text" value="${volunteerData.status}" class="input-field">
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Available Opportunities -->
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold mb-4">Peluang Mengajar</h2>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="card rounded-xl p-6">
-                    <div class="flex items-center space-x-3 mb-4">
-                        <div class="text-3xl">📐</div>
-                        <div>
-                            <h3 class="text-lg font-semibold">Matematika Lanjutan</h3>
-                            <p class="text-sm opacity-70">SMA Kelas 12</p>
-                        </div>
+                <!-- Baris 2 -->
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Jurusan:</label>
+                        <input type="text" value="${volunteerData.major}" class="input-field">
                     </div>
-                    <p class="text-sm opacity-80 mb-4">Butuh bantuan untuk persiapan ujian nasional</p>
-                    <div class="mb-4">
-                        <p class="text-xs text-gray-300">📅 Senin & Rabu, 14:00-15:30</p>
-                        <p class="text-xs text-gray-300">👥 10 siswa</p>
-                        <p class="text-xs text-gray-300">💰 Rp 150,000/sesi</p>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Mengajar Apa:</label>
+                        <input type="text" value="${volunteerData.subject}" class="input-field">
                     </div>
-                    <button class="volunteer-button w-full py-2 rounded-lg text-sm font-medium">
-                        Ambil Kelas
-                    </button>
                 </div>
-                <div class="card rounded-xl p-6">
-                    <div class="flex items-center space-x-3 mb-4">
-                        <div class="text-3xl">🌍</div>
-                        <div>
-                            <h3 class="text-lg font-semibold">Geografi</h3>
-                            <p class="text-sm opacity-70">SMA Kelas 11</p>
-                        </div>
+
+                <!-- Baris 3 -->
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Link WhatsApp:</label>
+                        <input type="text" value="${volunteerData.whatsapp}" class="input-field" placeholder="https://wa.me/08xxxxx">
                     </div>
-                    <p class="text-sm opacity-80 mb-4">Materi tentang iklim dan cuaca Indonesia</p>
-                    <div class="mb-4">
-                        <p class="text-xs text-gray-300">📅 Selasa & Kamis, 10:00-11:30</p>
-                        <p class="text-xs text-gray-300">👥 8 siswa</p>
-                        <p class="text-xs text-gray-300">💰 Rp 120,000/sesi</p>
-                    </div>
-                    <button class="volunteer-button w-full py-2 rounded-lg text-sm font-medium">
-                        Ambil Kelas
-                    </button>
+                    <div></div> <!-- Kolom kosong untuk menjaga grid seimbang -->
                 </div>
-                <div class="card rounded-xl p-6">
-                    <div class="flex items-center space-x-3 mb-4">
-                        <div class="text-3xl">💻</div>
-                        <div>
-                            <h3 class="text-lg font-semibold">Komputer Dasar</h3>
-                            <p class="text-sm opacity-70">SMP Kelas 7-9</p>
-                        </div>
-                    </div>
-                    <p class="text-sm opacity-80 mb-4">Pengenalan Microsoft Office dan internet</p>
-                    <div class="mb-4">
-                        <p class="text-xs text-gray-300">📅 Sabtu, 09:00-12:00</p>
+
+                <button type="submit" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                    Update Profil
+                </button>
+            </form>
+        </div>
+    </main>
+</body>

@@ -752,7 +752,7 @@
                         </div>
                     `;
                     break;
-case 'received':
+                case 'received':
                     content.innerHTML = `
                         <h3 class="text-2xl font-bold mb-6">Bantuan yang Diterima</h3>
                         
@@ -842,74 +842,63 @@ case 'received':
                     break;
                     case 'courses':
                     content.innerHTML = `
-                        <h3 class="text-2xl font-bold mb-6">Kursus dan Pembelajaran</h3>
-                        <p class="mb-6 opacity-80">Akses kursus gratis yang disediakan oleh platform Equalizer untuk mendukung pendidikan Anda.</p>
-                        
-                        <div class="grid md:grid-cols-2 gap-6">
-                            ${studentData.courses.map(course => `
-                                <div class="card rounded-xl p-6">
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h4 class="text-xl font-bold">${course.name}</h4>
-                                            <p class="text-sm opacity-80">Mentor: ${course.mentor}</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm opacity-80">Progress</p>
-                                            <p class="text-lg font-bold text-blue-400">${course.progress}%</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-4">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: ${course.progress}%"></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex space-x-2">
-                                        <button class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors flex-1">
-                                            Lanjutkan Belajar
-                                        </button>
-                                        <button class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-lg text-sm transition-colors">
-                                            Chat Mentor
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <!-- Available Courses -->
-                        <div class="mt-12">
-                            <h4 class="text-xl font-bold mb-6">Kursus Tersedia</h4>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                <div class="card rounded-xl p-6 text-center">
-                                    <div class="text-4xl mb-4">🧮</div>
-                                    <h5 class="text-lg font-bold mb-2">Matematika Lanjutan</h5>
-                                    <p class="text-sm opacity-80 mb-4">Pelajari konsep matematika tingkat lanjut</p>
-                                    <button class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm transition-colors">
-                                        Mulai Kursus
-                                    </button>
-                                </div>
-                                
-                                <div class="card rounded-xl p-6 text-center">
-                                    <div class="text-4xl mb-4">🔬</div>
-                                    <h5 class="text-lg font-bold mb-2">Kimia Dasar</h5>
-                                    <p class="text-sm opacity-80 mb-4">Memahami konsep dasar ilmu kimia</p>
-                                    <button class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm transition-colors">
-                                        Mulai Kursus
-                                    </button>
-                                </div>
-                                
-                                <div class="card rounded-xl p-6 text-center">
-                                    <div class="text-4xl mb-4">💻</div>
-                                    <h5 class="text-lg font-bold mb-2">Coding Pemula</h5>
-                                    <p class="text-sm opacity-80 mb-4">Belajar programming dari nol</p>
-                                    <button class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm transition-colors">
-                                        Mulai Kursus
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+  <div class="mb-6">
+    <h3 class="text-2xl font-bold mb-2">Belajar Bersama Volunteer</h3>
+    <p class="opacity-80">Temukan volunteer yang siap membantu Anda belajar secara gratis sesuai dengan bidang keahliannya.</p>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <!-- Volunteer 1 -->
+    <div class="card rounded-xl p-6 bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 shadow-lg text-white">
+      <div class="mb-4">
+        <h4 class="text-xl font-bold mb-1">Alya Putri</h4>
+        <p class="text-sm opacity-80">Mahasiswa Universitas Indonesia</p>
+        <p class="text-sm opacity-80">Jurusan: Pendidikan Matematika</p>
+        <p class="text-sm opacity-80 mb-2">Mengajar: Matematika Dasar</p>
+      </div>
+      <div class="flex justify-end">
+        <a href="https://wa.me/6281234567890" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+          Hubungi via WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- Volunteer 2 -->
+    <div class="card rounded-xl p-6 bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 shadow-lg text-white">
+      <div class="mb-4">
+        <h4 class="text-xl font-bold mb-1">Raka Pratama</h4>
+        <p class="text-sm opacity-80">Mahasiswa ITB</p>
+        <p class="text-sm opacity-80">Jurusan: Teknik Informatika</p>
+        <p class="text-sm opacity-80 mb-2">Mengajar: Coding Dasar & Logika Pemrograman</p>
+      </div>
+      <div class="flex justify-end">
+        <a href="https://wa.me/6289876543210" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+          Hubungi via WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- Volunteer 3 -->
+    <div class="card rounded-xl p-6 bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 shadow-lg text-white">
+      <div class="mb-4">
+        <h4 class="text-xl font-bold mb-1">Citra Lestari</h4>
+        <p class="text-sm opacity-80">Alumni UNJ</p>
+        <p class="text-sm opacity-80">Jurusan: Pendidikan Bahasa Inggris</p>
+        <p class="text-sm opacity-80 mb-2">Mengajar: Bahasa Inggris Dasar</p>
+      </div>
+      <div class="flex justify-end">
+        <a href="https://wa.me/6281122233344" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+          Hubungi via WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-10 bg-yellow-100 bg-opacity-10 border-l-4 border-yellow-400 text-yellow-200 p-4 rounded-lg text-sm">
+    <strong>Catatan untuk Orang Tua:</strong> Harap dampingi anak Anda saat melakukan sesi belajar bersama volunteer demi kenyamanan dan keamanan bersama.
+  </div>
+`;
+
                     break;
             }
         }
