@@ -243,7 +243,7 @@
     <!-- Header -->
     <header class="px-6 md:px-10 py-5 flex justify-between items-center">
         <div class="flex items-center space-x-4">
-            <div class="text-2xl font-bold">🎓 Equalizer</div>
+            <div class="text-2xl font-bold">Equalizer</div>
             <span class="text-sm bg-blue-500 px-3 py-1 rounded-full">Student</span>
         </div>
         <div class="flex items-center space-x-4">
@@ -265,22 +265,22 @@
         <!-- Navigation Tabs -->
         <div class="flex flex-wrap gap-4 mb-8">
             <button onclick="showSection('profile')" class="nav-button active" id="profile-btn">
-                👤 Profil
+                Profil
             </button>
             <button onclick="showSection('verification')" class="nav-button" id="verification-btn">
-                🔍 Verifikasi Dokumen
+                Verifikasi Dokumen
             </button>
             <button onclick="showSection('requests')" class="nav-button" id="requests-btn">
-                📋 Permintaan Bantuan
+                Permintaan Bantuan
             </button>
             <button onclick="showSection('received')" class="nav-button" id="received-btn">
-                💰 Bantuan Diterima
+                Bantuan Diterima
             </button>
             <button onclick="showSection('validation')" class="nav-button" id="validation-btn">
-                📸 Upload Bukti
+                Upload Bukti
             </button>
             <button onclick="showSection('courses')" class="nav-button" id="courses-btn">
-                📚 Kursus Saya
+                Kursus Saya
             </button>
         </div>
 
@@ -562,7 +562,7 @@
                                         <h3 class="text-lg font-semibold">Total Permintaan</h3>
                                         <p class="text-2xl font-bold text-yellow-400">${studentData.requests.length}</p>
                                     </div>
-                                    <div class="text-3xl">📋</div>
+                                    <div class="text-3xl"></div>
                                 </div>
                             </div>
                             <div class="card rounded-xl p-6">
@@ -571,7 +571,7 @@
                                         <h3 class="text-lg font-semibold">Bantuan Diterima</h3>
                                         <p class="text-2xl font-bold text-blue-400">${studentData.received.length}</p>
                                     </div>
-                                    <div class="text-3xl">💰</div>
+                                    <div class="text-3xl"></div>
                                 </div>
                             </div>
                             <div class="card rounded-xl p-6">
@@ -646,12 +646,12 @@
                         <div class="grid md:grid-cols-2 gap-6 mb-8">
                             <!-- KTP Upload -->
                             <div class="card rounded-xl p-6">
-                                <h4 class="text-lg font-bold mb-4">📄 Upload KTP</h4>
+                                <h4 class="text-lg font-bold mb-4">Upload KTP</h4>
                                 <div class="space-y-4">
                                     <input type="file" id="ktpFile" accept="image/*" class="input-field" onchange="previewDocument(this, 'ktp')">
                                     <div id="ktpPreview"></div>
                                     <button onclick="verifyDocument('ktp')" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
-                                        🤖 Verifikasi dengan AI
+                                        Verifikasi dengan AI
                                     </button>
                                     <div id="ktpAnalysis"></div>
                                 </div>
@@ -659,12 +659,12 @@
 
                             <!-- Kartu Keluarga Upload -->
                             <div class="card rounded-xl p-6">
-                                <h4 class="text-lg font-bold mb-4">👨‍👩‍👧‍👦 Upload Kartu Keluarga</h4>
+                                <h4 class="text-lg font-bold mb-4">Upload Kartu Keluarga</h4>
                                 <div class="space-y-4">
                                     <input type="file" id="kkFile" accept="image/*" class="input-field" onchange="previewDocument(this, 'kartuKeluarga')">
                                     <div id="kkPreview"></div>
                                     <button onclick="verifyDocument('kartuKeluarga')" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
-                                        🤖 Verifikasi dengan AI
+                                        Verifikasi dengan AI
                                     </button>
                                     <div id="kkAnalysis"></div>
                                 </div>
@@ -673,7 +673,7 @@
 
                        <!-- Verification History -->
                         <div class="card rounded-xl p-6">
-                            <h4 class="text-lg font-bold mb-4">📋 Riwayat Verifikasi</h4>
+                            <h4 class="text-lg font-bold mb-4">Riwayat Verifikasi</h4>
                             ${studentData.verificationHistory.length > 0 ? 
                                 studentData.verificationHistory.map(item => `
 
@@ -813,7 +813,7 @@
                         <div class="grid gap-6">
                             ${studentData.received.filter(item => item.status === 'completed' && !item.proof).map(item => `
                                 <div class="card rounded-xl p-6">
-                                    <h4 class="text-xl font-bold mb-4">🎯 ${item.item}</h4>
+                                    <h4 class="text-xl font-bold mb-4"> ${item.item}</h4>
                                     <p class="text-sm opacity-80 mb-4">Bantuan dari: ${item.donor} - Rp ${item.amount.toLocaleString('id-ID')}</p>
                                     
                                     <div class="space-y-4">
@@ -830,7 +830,7 @@
                                         </div>
                                         
                                         <button onclick="submitProof(${item.id})" class="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold transition-colors">
-                                            📤 Submit Bukti
+                                            Submit Bukti
                                         </button>
                                     </div>
                                 </div>
@@ -982,7 +982,7 @@
                     <div class="flex items-center space-x-3">
                         <div class="spinner"></div>
                         <div>
-                            <h5 class="font-bold">🤖 AI sedang menganalisis dokumen...</h5>
+                            <h5 class="font-bold">AI sedang menganalisis dokumen...</h5>
                             <p class="text-sm mt-1">Mohon tunggu, proses ini memakan waktu 2-5 menit</p>
                         </div>
                     </div>
@@ -994,7 +994,7 @@
 
                 analysisContainer.innerHTML = `
                     <div class="ai-analysis">
-                        <h5 class="font-bold mb-3">🤖 Hasil Analisis AI</h5>
+                        <h5 class="font-bold mb-3">Hasil Analisis AI</h5>
 
                         <div class="grid md:grid-cols-2 gap-4 mb-4">
                             <div>
@@ -1040,7 +1040,7 @@
                 if (result.isValid && result.confidence > 80) {
                     studentData.verificationStatus = 'verified';
                     setTimeout(() => {
-                        alert('🎉 Dokumen berhasil diverifikasi! Anda sekarang dapat mengajukan bantuan.');
+                        alert('Dokumen berhasil diverifikasi! Anda sekarang dapat mengajukan bantuan.');
                         showSection('profile'); // Refresh to show new status
                     }, 1000);
                 } else {

@@ -133,7 +133,7 @@
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium mb-2">Nama Lengkap:</label>
-                        <input type="text" value="${volunteerData.name}" class="input-field" readonly>
+                        <input type="text" value="${volunteerData.name}" class="input-field">
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-2">Status (Mahasiswa/Alumni & Institusi):</label>
