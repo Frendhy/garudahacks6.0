@@ -346,16 +346,27 @@
                 transform: translateY(-100px) translateX(50px) rotate(180deg);
             }
         }
-    .swal2-popup {
+        
+        .swal2-popup {
             background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
             color: white !important;
             border-radius: 20px !important;
             font-family: 'Poppins', sans-serif !important;
+            margin-top: 0 !important;
         }
 
         .swal2-title {
             color: white !important;
             font-weight: 600 !important;
+        }
+
+        .swal2-container {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
         }
 
         .swal2-html-container {
