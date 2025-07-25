@@ -519,7 +519,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Redirect to register page
-                    // window.location.href = 'register_form.php';
+                    window.location.href = 'register_form.php';
                     
                     // For demo purposes
                     Toast.fire({

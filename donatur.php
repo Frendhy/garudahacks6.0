@@ -799,7 +799,7 @@
                         confirmButtonColor: '#28A745'
                     }).then(() => {
                         // Redirect to login page or home
-                        window.location.href = '/login';
+                        window.location.href = 'index.php';
                     });
                 }
             });
