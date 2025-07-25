@@ -680,7 +680,7 @@
                                 <div class="grid md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium mb-2">Nama Lengkap:</label>
-                                        <input type="text" value="${studentData.name}" class="input-field" readonly>
+                                        <input type="text" value="${studentData.name}" class="input-field">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium mb-2">Umur:</label>
@@ -1010,7 +1010,6 @@
                     break;
             }
         }
-
 
         // Helper functions
         function getVerificationStatusText(status) {
