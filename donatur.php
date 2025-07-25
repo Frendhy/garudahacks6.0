@@ -1,6 +1,143 @@
+<?php
+session_start();
+include('db_connection.php');
+
+// FIXED: Check if user is NOT logged in (changed condition)
+if (!isset($_SESSION['user_id'])) {
+    echo "<p>Please log in first.</p>";
+    exit;
+}
+
+// FIXED: Added check for donor role
+if ($_SESSION['peran'] !== 'donatur') {
+    echo "<p>Access denied. This page is for donors only.</p>";
+    exit;
+}
+
+$id = $_SESSION['user_id'];
+// FIXED: Use $id instead of undefined $donor_id variable
+$donor_id = $id;
+
+// Get donor information with error handling
+$queryDonors = "SELECT * FROM donors WHERE id = ?";
+$stmtDonors = $conn->prepare($queryDonors);
+
+if (!$stmtDonors) {
+    echo "Error preparing donor query: " . $conn->error;
+    exit;
+}
+
+$stmtDonors->bind_param("i", $id);
+$stmtDonors->execute();
+$resultDonors = $stmtDonors->get_result();
+
+if (!$resultDonors) {
+    echo "Error executing donor query: " . $conn->error;
+    exit;
+}
+
+$donor_info = $resultDonors->fetch_assoc();
+
+// Check if donor exists
+if (!$donor_info) {
+    echo "<p>Donor not found. Please log in again.</p>";
+    session_destroy();
+    exit;
+}
+
+// Get donation requests with updated collected amounts
+$query = "SELECT dr.*, s.name as student_name,
+          COALESCE(SUM(CASE WHEN d.status = 'verified' THEN d.amount ELSE 0 END), 0) as actual_collected
+          FROM donation_requests dr 
+          JOIN students s ON dr.student_id = s.id 
+          LEFT JOIN donations d ON dr.id = d.request_id 
+          GROUP BY dr.id
+          ORDER BY dr.id DESC";
+
+$stmt = $conn->prepare($query);
+
+if (!$stmt) {
+    echo "Error preparing requests query: " . $conn->error;
+    exit;
+}
+
+$stmt->execute();
+$result = $stmt->get_result();
+
+if (!$result) {
+    echo "Error executing requests query: " . $conn->error;
+    exit;
+}
+
+$donation_requests = array();
+while ($row = $result->fetch_assoc()) {
+    // Update the collected amount with actual verified donations
+    $row['collected'] = $row['actual_collected'];
+    
+    // Calculate progress based on actual collected amount
+    $row['progress'] = $row['amount'] > 0 ? min(100, ($row['actual_collected'] / $row['amount']) * 100) : 0;
+    
+    // Update status based on progress
+    if ($row['actual_collected'] >= $row['amount']) {
+        $row['status'] = 'completed';
+    } elseif ($row['actual_collected'] > 0) {
+        $row['status'] = 'pending';
+    }
+    
+    $donation_requests[] = $row;
+}
+
+// Get donor's donations - FIXED: Use $id instead of undefined $donor_id
+$queryDonations = "SELECT d.*, dr.item, s.name as student_name 
+                   FROM donations d 
+                   JOIN donation_requests dr ON d.request_id = dr.id 
+                   JOIN students s ON dr.student_id = s.id 
+                   WHERE d.donor_id = ?
+                   ORDER BY d.date DESC";
+
+$stmtDonations = $conn->prepare($queryDonations);
+
+if (!$stmtDonations) {
+    echo "Error preparing donations query: " . $conn->error;
+    exit;
+}
+
+$stmtDonations->bind_param("i", $id);
+$stmtDonations->execute();
+$resultDonations = $stmtDonations->get_result();
+
+if (!$resultDonations) {
+    echo "Error executing donations query: " . $conn->error;
+    exit;
+}
+
+$donor_donations = array();
+while ($rowDonations = $resultDonations->fetch_assoc()) {
+    $donor_donations[] = $rowDonations;
+}
+
+// Calculate total donations (only verified)
+$totalDonations = 0;
+foreach ($donor_donations as $donation) {
+    if (isset($donation['status']) && $donation['status'] === 'verified') {
+        $totalDonations += $donation['amount'];
+    }
+}
+
+// Calculate students helped (only from verified donations)
+$verifiedDonations = array_filter($donor_donations, function($d) {
+    return isset($d['status']) && $d['status'] === 'verified';
+});
+$studentsHelped = count(array_unique(array_column($verifiedDonations, 'student_name')));
+
+// Close prepared statements
+$stmtDonors->close();
+$stmt->close();
+$stmtDonations->close();
+?>
+
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -68,6 +205,14 @@
             box-shadow: 0 10px 25px rgba(250, 229, 70, 0.4);
         }
 
+        .donate-button:disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .tab-button {
             transition: all 0.3s ease;
         }
@@ -98,37 +243,10 @@
             font-weight: 500;
         }
 
-        .badge.urgent {
-            background: #dc2626;
-            color: white;
-        }
-
-        .badge.pending {
-            background: #f59e0b;
-            color: white;
-        }
-
-        .badge.waiting_proof {
-            background: var(--highlight);
-            color: var(--dark);
-        }
-
-        .badge.completed,
-        .badge.verified {
-            background: #16a34a;
-            color: white;
-        }
-
-        .filter-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .swal2-popup {
-            font-family: 'Poppins', sans-serif !important;
-            border-radius: 15px !important;
-        }
+        .badge.urgent { background: #dc2626; color: white; }
+        .badge.pending { background: #f59e0b; color: white; }
+        .badge.waiting_proof { background: var(--highlight); color: var(--dark); }
+        .badge.completed, .badge.verified { background: #16a34a; color: white; }
 
         .upload-area {
             border: 2px dashed #A78BFA;
@@ -152,6 +270,15 @@
             padding: 1rem;
             margin-top: 1rem;
         }
+
+        .completed-badge {
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -163,9 +290,10 @@
             <span class="text-sm bg-yellow-500 text-black px-3 py-1 rounded-full font-medium">Donatur</span>
         </div>
         <div class="flex items-center space-x-4">
-            <span class="hidden md:inline text-sm" id="welcomeText">Halo, Budi Santoso</span>
-            <button onclick="logout()"
-                class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm transition-colors">
+            <span class="hidden md:inline text-sm" id="welcomeText">
+                Halo, <?php echo isset($donor_info['name']) ? htmlspecialchars($donor_info['name']) : (isset($_SESSION['nama']) ? htmlspecialchars($_SESSION['nama']) : 'Guest'); ?>
+            </span>
+            <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm transition-colors">
                 Keluar
             </button>
         </div>
@@ -185,7 +313,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-lg font-semibold">Total Donasi</h3>
-                        <p class="text-2xl font-bold text-yellow-400">Rp 150,000</p>
+                        <p class="text-2xl font-bold text-yellow-400">Rp <?php echo number_format($totalDonations); ?></p>
                     </div>
                     <div class="text-3xl">💰</div>
                 </div>
@@ -194,7 +322,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-lg font-semibold">Pelajar Terbantu</h3>
-                        <p class="text-2xl font-bold text-blue-400">1</p>
+                        <p class="text-2xl font-bold text-blue-400"><?php echo $studentsHelped; ?></p>
                     </div>
                     <div class="text-3xl">🎓</div>
                 </div>
@@ -203,7 +331,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-lg font-semibold">Donasi Aktif</h3>
-                        <p class="text-2xl font-bold text-green-400">1</p>
+                        <p class="text-2xl font-bold text-green-400"><?php echo count($donor_donations); ?></p>
                     </div>
                     <div class="text-3xl">📈</div>
                 </div>
@@ -222,62 +350,105 @@
         <!-- Navigation Tabs -->
         <div class="mb-8">
             <div class="flex flex-wrap gap-2 mb-6">
-                <button onclick="showSection('requests')"
-                    class="tab-button active px-6 py-3 rounded-lg font-medium transition-all" id="requests-btn">
+                <button onclick="showSection('requests')" class="tab-button active px-6 py-3 rounded-lg font-medium transition-all" id="requests-btn">
                     Permintaan Bantuan
                 </button>
-                <button onclick="showSection('donations')"
-                    class="tab-button px-6 py-3 rounded-lg font-medium transition-all hover:bg-white hover:bg-opacity-10"
-                    id="donations-btn">
+                <button onclick="showSection('donations')" class="tab-button px-6 py-3 rounded-lg font-medium transition-all hover:bg-white hover:bg-opacity-10" id="donations-btn">
                     Donasi Saya
                 </button>
-                <button onclick="showSection('impact')"
-                    class="tab-button px-6 py-3 rounded-lg font-medium transition-all hover:bg-white hover:bg-opacity-10"
-                    id="impact-btn">
+                <button onclick="showSection('impact')" class="tab-button px-6 py-3 rounded-lg font-medium transition-all hover:bg-white hover:bg-opacity-10" id="impact-btn">
                     Dampak Donasi
-                </button>
-                <button onclick="showSection('profile')"
-                    class="tab-button px-6 py-3 rounded-lg font-medium transition-all hover:bg-white hover:bg-opacity-10"
-                    id="profile-btn">
-                    Profil
                 </button>
             </div>
 
             <!-- Content Area -->
             <div class="content-card rounded-xl p-8" id="content">
-                <!-- Content will be loaded here -->
+                <!-- Default content: Requests -->
+                <h3 class="text-2xl font-bold mb-6 text-gray-800">Permintaan Bantuan Siswa</h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="requestsGrid">
+                    <?php if (!empty($donation_requests)): ?>
+                        <?php foreach ($donation_requests as $request): ?>
+                            <?php 
+                            $requestAmount = isset($request['amount']) ? $request['amount'] : 0;
+                            $requestCollected = isset($request['collected']) ? $request['collected'] : 0;
+                            $remainingAmount = $requestAmount - $requestCollected;
+                            $isCompleted = $requestCollected >= $requestAmount;
+                            ?>
+                            <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all <?php echo $isCompleted ? 'border-2 border-green-500' : ''; ?>">
+                                <?php if ($isCompleted): ?>
+                                    <div class="completed-badge mb-3 text-center">✅ Target Tercapai!</div>
+                                <?php endif; ?>
+                                
+                                <h4 class="text-xl font-bold mb-3 text-gray-800">
+                                    <?php echo isset($request['item']) ? htmlspecialchars($request['item']) : 'Item tidak tersedia'; ?>
+                                </h4>
+                                <p class="text-gray-600 mb-2">Nama Siswa: 
+                                    <span class="font-medium">
+                                        <?php echo isset($request['student_name']) ? htmlspecialchars($request['student_name']) : 'Tidak tersedia'; ?>
+                                    </span>
+                                </p>
+                                <p class="text-gray-600 mb-2">Target: 
+                                    <span class="font-bold text-blue-600">Rp <?php echo number_format($requestAmount); ?></span>
+                                </p>
+                                <p class="mb-3">Status: 
+                                    <span class="badge <?php echo isset($request['status']) ? $request['status'] : 'pending'; ?>">
+                                        <?php echo isset($request['status']) ? ucfirst($request['status']) : 'Pending'; ?>
+                                    </span>
+                                </p>
+                                
+                                <div class="progress-bar mb-3">
+                                    <div class="progress-fill" style="width: <?php echo min(100, isset($request['progress']) ? $request['progress'] : 0); ?>%"></div>
+                                </div>
+                                
+                                <p class="text-sm text-gray-600 mb-2">Dana terkumpul: 
+                                    <span class="font-bold text-green-600">Rp <?php echo number_format($requestCollected); ?></span>
+                                </p>
+                                
+                                <?php if (!$isCompleted): ?>
+                                    <p class="text-sm text-gray-600 mb-4">Sisa kebutuhan: 
+                                        <span class="font-bold text-red-600">Rp <?php echo number_format($remainingAmount); ?></span>
+                                    </p>
+                                    <button class="w-full donate-button py-3 px-4 rounded-lg font-medium" 
+                                            onclick="donate(<?php echo isset($request['id']) ? $request['id'] : 0; ?>, '<?php echo isset($request['item']) ? htmlspecialchars($request['item']) : ''; ?>', '<?php echo isset($request['student_name']) ? htmlspecialchars($request['student_name']) : ''; ?>', <?php echo $requestAmount; ?>, <?php echo $requestCollected; ?>)">
+                                        Donasi Sekarang
+                                    </button>
+                                <?php else: ?>
+                                    <p class="text-sm text-green-600 mb-4 font-medium">🎉 Target donasi sudah tercapai!</p>
+                                    <button class="w-full py-3 px-4 rounded-lg font-medium bg-gray-200 text-gray-500 cursor-not-allowed" disabled>
+                                        Target Tercapai
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-gray-500">Belum ada permintaan bantuan tersedia.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </main>
-    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-luNrPHRSBmDtAsLb"></script>
-    <script>
-        // Sample data
-        let donorData = {
-            name: 'Budi Santoso',
-            email: 'budi.santoso@email.com',
-            phone: '081234567890',
-            donations: [
-                {
-                    id: 1,
-                    item: 'Sepatu Sekolah',
-                    student: 'Ahmad Rizki',
-                    amount: 150000,
-                    date: '2025-07-20',
-                    status: 'verified',
-                    note: 'Semoga bermanfaat untuk sek3olah!',
-                    proofUrl: null
-                }
-            ],
-            requests: [
-                { id: 1, student: 'Ahmad Rizki', item: 'Kuota Internet', amount: 50000, status: 'urgent', progress: 0, collected: 0 },
-                { id: 2, student: 'Ahmad Rizki', item: 'Biaya SPP', amount: 200000, status: 'pending', progress: 25, collected: 50000 },
-                { id: 3, student: 'Sari Putri', item: 'Buku Pelajaran', amount: 300000, status: 'pending', progress: 40, collected: 120000 },
-                { id: 4, student: 'Maya Sari', item: 'Seragam Sekolah', amount: 250000, status: 'urgent', progress: 10, collected: 25000 }
-            ]
-        };
 
+    <!-- Include Midtrans Snap -->
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-luNrPHRSBmDtAsLb"></script>
+    
+    <!-- Pass PHP data to JavaScript -->
+    <script>
+        const donorData = {
+            id: <?php echo $donor_id; ?>,
+            name: '<?php echo isset($donor_info['name']) ? htmlspecialchars($donor_info['name']) : (isset($_SESSION['nama']) ? htmlspecialchars($_SESSION['nama']) : ''); ?>',
+            email: '<?php echo isset($donor_info['email']) ? htmlspecialchars($donor_info['email']) : (isset($_SESSION['email']) ? htmlspecialchars($_SESSION['email']) : ''); ?>',
+            phone: '<?php echo isset($donor_info['phone']) ? htmlspecialchars($donor_info['phone']) : ''; ?>',
+            donations: <?php echo json_encode($donor_donations); ?>
+        };
+        
+        const donationRequests = <?php echo json_encode($donation_requests); ?>;
+    </script>
+
+    <script>
         function showSection(section) {
-            // Update active tab
+            // Update tab buttons
             document.querySelectorAll('.tab-button').forEach(b => {
                 b.classList.remove('active');
                 b.classList.add('hover:bg-white', 'hover:bg-opacity-10');
@@ -286,114 +457,115 @@
             document.getElementById(section + '-btn').classList.remove('hover:bg-white', 'hover:bg-opacity-10');
 
             const content = document.getElementById('content');
+            
             switch (section) {
                 case 'requests':
-                    content.innerHTML = `
-                        <h3 class="text-2xl font-bold mb-6 text-gray-800">Permintaan Bantuan Siswa</h3>
-                        
-                        <!-- Filter Section -->
-                        <div class="filter-section rounded-lg p-6 mb-6">
-                            <div class="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2 text-white">Filter Status:</label>
-                                    <select id="filterStatus" onchange="filterRequests()" class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30 focus:border-opacity-60 outline-none">
-                                        <option value="">Semua</option>
-                                        <option value="urgent">Mendesak</option>
-                                        <option value="pending">Menunggu</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2 text-white">Cari Nama Siswa:</label>
-                                    <input type="text" id="searchStudent" placeholder="Nama siswa..." oninput="filterRequests()" class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border border-white border-opacity-30 focus:border-opacity-60 outline-none">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Requests Grid -->
-                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="requestsGrid">
-                            ${donorData.requests.map(request => `
-                                <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all hover:transform hover:-translate-y-1">
-                                    <h4 class="text-xl font-bold mb-3 text-gray-800">${request.item}</h4>
-                                    <p class="text-gray-600 mb-2">Nama Siswa: <span class="font-medium">${request.student}</span></p>
-                                    <p class="text-gray-600 mb-2">Estimasi: <span class="font-bold text-blue-600">Rp ${request.amount.toLocaleString()}</span></p>
-                                    <p class="mb-3">Status: <span class="badge ${request.status}">${getStatusText(request.status)}</span></p>
+                    let requestsHtml = '<h3 class="text-2xl font-bold mb-6 text-gray-800">Permintaan Bantuan Siswa</h3><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">';
+                    
+                    if (donationRequests && donationRequests.length > 0) {
+                        donationRequests.forEach(request => {
+                            const remainingAmount = (request.amount || 0) - (request.collected || 0);
+                            const isCompleted = (request.collected || 0) >= (request.amount || 0);
+                            const progress = Math.min(100, request.progress || 0);
+                            
+                            requestsHtml += `
+                                <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all ${isCompleted ? 'border-2 border-green-500' : ''}">
+                                    ${isCompleted ? '<div class="completed-badge mb-3 text-center">✅ Target Tercapai!</div>' : ''}
+                                    
+                                    <h4 class="text-xl font-bold mb-3 text-gray-800">${request.item || 'Item tidak tersedia'}</h4>
+                                    <p class="text-gray-600 mb-2">Nama Siswa: <span class="font-medium">${request.student_name || 'Tidak tersedia'}</span></p>
+                                    <p class="text-gray-600 mb-2">Target: <span class="font-bold text-blue-600">Rp ${(request.amount || 0).toLocaleString()}</span></p>
+                                    <p class="mb-3">Status: <span class="badge ${request.status || 'pending'}">${getStatusText(request.status || 'pending')}</span></p>
                                     
                                     <div class="progress-bar mb-3">
-                                        <div class="progress-fill" style="width: ${request.progress}%"></div>
+                                        <div class="progress-fill" style="width: ${progress}%"></div>
                                     </div>
-                                    <p class="text-sm text-gray-600 mb-4">Dana terkumpul: <span class="font-bold text-green-600">Rp ${request.collected.toLocaleString()}</span></p>
                                     
-                                    <button class="w-full donate-button py-3 px-4 rounded-lg font-medium" onclick="donate(${request.id})">
-                                        Donasi Sekarang
-                                    </button>
+                                    <p class="text-sm text-gray-600 mb-2">Dana terkumpul: <span class="font-bold text-green-600">Rp ${(request.collected || 0).toLocaleString()}</span></p>
+                                    
+                                    ${!isCompleted ? `
+                                        <p class="text-sm text-gray-600 mb-4">Sisa kebutuhan: <span class="font-bold text-red-600">Rp ${remainingAmount.toLocaleString()}</span></p>
+                                        <button class="w-full donate-button py-3 px-4 rounded-lg font-medium" onclick="donate(${request.id || 0}, '${request.item || ''}', '${request.student_name || ''}', ${request.amount || 0}, ${request.collected || 0})">
+                                            Donasi Sekarang
+                                        </button>
+                                    ` : `
+                                        <p class="text-sm text-green-600 mb-4 font-medium">🎉 Target donasi sudah tercapai!</p>
+                                        <button class="w-full py-3 px-4 rounded-lg font-medium bg-gray-200 text-gray-500 cursor-not-allowed" disabled>
+                                            Target Tercapai
+                                        </button>
+                                    `}
                                 </div>
-                            `).join('')}
-                        </div>
-                    `;
+                            `;
+                        });
+                    } else {
+                        requestsHtml += '<div class="col-span-full text-center py-8"><p class="text-gray-500">Belum ada permintaan bantuan tersedia.</p></div>';
+                    }
+                    
+                    requestsHtml += '</div>';
+                    content.innerHTML = requestsHtml;
                     break;
 
                 case 'donations':
-                    content.innerHTML = `
-                        <h3 class="text-2xl font-bold mb-6 text-gray-800">Riwayat Donasi Saya</h3>
-                        <div class="space-y-6">
-                            ${donorData.donations.map(donation => `
+                    let donationsHtml = '<h3 class="text-2xl font-bold mb-6 text-gray-800">Riwayat Donasi Saya</h3><div class="space-y-6">';
+                    
+                    if (donorData.donations && donorData.donations.length > 0) {
+                        donorData.donations.forEach(donation => {
+                            donationsHtml += `
                                 <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-purple-500">
                                     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                                         <div class="flex-1">
-                                            <h4 class="text-xl font-bold mb-2 text-gray-800">${donation.item}</h4>
-                                            <p class="text-gray-600 mb-1">Untuk: <span class="font-medium">${donation.student}</span></p>
-                                            <p class="text-gray-600 mb-1">Jumlah: <span class="font-bold text-blue-600">Rp ${donation.amount.toLocaleString()}</span></p>
-                                            <p class="text-gray-600 mb-1">Tanggal: ${new Date(donation.date).toLocaleDateString('id-ID')}</p>
-                                            <p class="mb-2">Status: <span class="badge ${donation.status}">${donation.status === 'verified' ? 'Tervalidasi' : donation.status === 'pending' ? 'Menunggu Validasi' : 'Ditolak'}</span></p>
-                                            <p class="text-gray-700 italic">"${donation.note}"</p>
-                                            ${donation.proofUrl ? `<p class="mt-2">Bukti Transfer: <a href="${donation.proofUrl}" target="_blank" class="text-blue-500 hover:underline">Lihat Bukti</a></p>` : ''}
+                                            <h4 class="text-xl font-bold mb-2 text-gray-800">${donation.item || 'Item tidak tersedia'}</h4>
+                                            <p class="text-gray-600 mb-1">Untuk: <span class="font-medium">${donation.student_name || 'Tidak tersedia'}</span></p>
+                                            <p class="text-gray-600 mb-1">Jumlah: <span class="font-bold text-blue-600">Rp ${(donation.amount || 0).toLocaleString()}</span></p>
+                                            <p class="text-gray-600 mb-1">Tanggal: ${donation.date || 'Tidak tersedia'}</p>
+                                            <p class="text-gray-700 italic">${donation.note || ''}</p>
+                                            ${donation.proof_url ? `<p class="mt-2">Bukti Transfer: <a href="${donation.proof_url}" target="_blank" class="text-blue-500 hover:underline">Lihat Bukti</a></p>` : ''}
                                         </div>
                                         <div class="mt-4 md:mt-0 md:ml-6">
-                                            ${donation.status === 'pending' && !donation.proofUrl ?
-                            `<button class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors" onclick="uploadProof(${donation.id})">Upload Bukti Transfer</button>` : ''
-                        }
-                                            ${donation.status === 'waiting_proof' ?
-                            `<button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" onclick="uploadProof(${donation.id})">Upload Bukti Transfer</button>` : ''
-                        }
+                                            ${donation.status === 'waiting_proof' && !donation.proof_url ? `<button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors mb-2" onclick="uploadProof(${donation.id || 0})">Upload Bukti Transfer</button><br>` : ''}
+                                            <span class="badge ${donation.status || 'pending'}">${getStatusText(donation.status || 'pending')}</span>
                                         </div>
                                     </div>
                                 </div>
-                            `).join('')}
-                        </div>
-                    `;
+                            `;
+                        });
+                    } else {
+                        donationsHtml += '<div class="text-center py-8"><p class="text-gray-500">Belum ada riwayat donasi.</p></div>';
+                    }
+                    
+                    donationsHtml += '</div>';
+                    content.innerHTML = donationsHtml;
                     break;
 
                 case 'impact':
+                    const verifiedDonations = (donorData.donations || []).filter(d => d.status === 'verified');
+                    const totalVerifiedAmount = verifiedDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+                    const uniqueStudents = new Set(verifiedDonations.map(d => d.student_name)).size;
+                    
                     content.innerHTML = `
                         <h3 class="text-2xl font-bold mb-6 text-gray-800">Dampak Donasi Anda</h3>
                         <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border-l-4 border-green-500">
-                            <h4 class="text-xl font-bold mb-3 text-green-700">Sepatu Sekolah untuk Ahmad Rizki</h4>
-                            <p class="text-gray-700 mb-2">Status: <span class="text-green-600 font-medium">✓ Tervalidasi</span></p>
-                            <p class="text-gray-700 mb-2">Ucapan Terima Kasih:</p>
+                            <h4 class="text-xl font-bold mb-3 text-green-700">Dampak Positif Donasi Anda</h4>
+                            <p class="text-gray-700 mb-2">Total Donasi Terverifikasi: <span class="text-green-600 font-bold">Rp ${totalVerifiedAmount.toLocaleString()}</span></p>
+                            <p class="text-gray-700 mb-2">Siswa Terbantu: <span class="text-blue-600 font-bold">${uniqueStudents} siswa</span></p>
+                            <p class="text-gray-700 mb-2">Status: <span class="text-green-600 font-medium">✓ Membantu Pendidikan</span></p>
                             <blockquote class="bg-white p-4 rounded-lg border-l-4 border-blue-400 italic text-gray-700 mb-3">
-                                "Terima kasih banyak Pak Budi! Sepatu ini sangat membantu saya di sekolah. Sekarang saya bisa belajar dengan nyaman dan percaya diri."
+                                "Donasi Anda sangat membantu siswa-siswa yang membutuhkan untuk melanjutkan pendidikan mereka."
                             </blockquote>
-                            <p class="text-gray-600">Tanggal Validasi: 21 Juli 2025</p>
-                            <div class="mt-4 flex items-center space-x-4">
-                                <div class="text-3xl">👟</div>
-                                <div class="text-3xl">➡️</div>
-                                <div class="text-3xl">😊</div>
-                                <div class="text-3xl">🎓</div>
-                            </div>
                         </div>
                         
                         <div class="mt-8 grid md:grid-cols-3 gap-6">
                             <div class="bg-white rounded-xl p-6 text-center shadow-lg">
                                 <div class="text-4xl mb-3">💝</div>
-                                <h4 class="text-lg font-bold text-gray-800 mb-2">Total Dampak</h4>
-                                <p class="text-2xl font-bold text-blue-600">1 Siswa</p>
-                                <p class="text-gray-600">Terbantu</p>
+                                <h4 class="text-lg font-bold text-gray-800 mb-2">Total Donasi</h4>
+                                <p class="text-2xl font-bold text-blue-600">${verifiedDonations.length}</p>
+                                <p class="text-gray-600">Donasi Terverifikasi</p>
                             </div>
                             <div class="bg-white rounded-xl p-6 text-center shadow-lg">
                                 <div class="text-4xl mb-3">📈</div>
-                                <h4 class="text-lg font-bold text-gray-800 mb-2">Peningkatan</h4>
-                                <p class="text-2xl font-bold text-green-600">95%</p>
-                                <p class="text-gray-600">Kepercayaan Diri</p>
+                                <h4 class="text-lg font-bold text-gray-800 mb-2">Siswa Terbantu</h4>
+                                <p class="text-2xl font-bold text-green-600">${uniqueStudents}</p>
+                                <p class="text-gray-600">Siswa</p>
                             </div>
                             <div class="bg-white rounded-xl p-6 text-center shadow-lg">
                                 <div class="text-4xl mb-3">⭐</div>
@@ -404,57 +576,37 @@
                         </div>
                     `;
                     break;
-
-                case 'profile':
-                    content.innerHTML = `
-                        <h3 class="text-2xl font-bold mb-6 text-gray-800">Profil Donatur</h3>
-                        <form onsubmit="updateProfile(event)" class="max-w-2xl">
-                            <div class="grid gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2 text-gray-700">Nama Lengkap:</label>
-                                    <input type="text" id="profileName" value="${donorData.name}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2 text-gray-700">Email:</label>
-                                    <input type="email" id="profileEmail" value="${donorData.email}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2 text-gray-700">Nomor Telepon:</label>
-                                    <input type="tel" id="profilePhone" value="${donorData.phone}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none">
-                                </div>
-                                <div>
-                                    <button type="submit" class="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-lg font-medium transition-all">
-                                        Update Profil
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    `;
-                    break;
             }
         }
 
         function getStatusText(status) {
             switch (status) {
                 case 'urgent': return 'Mendesak';
-                case 'pending': return 'Menunggu';
+                case 'pending': return 'Sedang Berjalan';
                 case 'verified': return 'Tervalidasi';
+                case 'waiting_proof': return 'Menunggu Bukti';
+                case 'completed': return 'Selesai';
                 default: return status;
             }
         }
 
-        async function donate(requestId) {
-            const request = donorData.requests.find(r => r.id === requestId);
-
+        async function donate(requestId, itemName, studentName, totalAmount, collectedAmount) {
+            const remainingAmount = totalAmount - collectedAmount;
+            
+            if (remainingAmount <= 0) {
+                Swal.fire('Info', 'Target donasi untuk item ini sudah tercapai.', 'info');
+                return;
+            }
+            
             const { value: donationAmount } = await Swal.fire({
-                title: `Donasi untuk ${request.item}`,
+                title: `Donasi untuk ${itemName}`,
                 html: `
                     <div style="text-align: left; margin: 20px 0;">
-                        <p><strong>Siswa:</strong> ${request.student}</p>
-                        <p><strong>Kebutuhan:</strong> ${request.item}</p>
-                        <p><strong>Estimasi biaya:</strong> Rp ${request.amount.toLocaleString()}</p>
-                        <p><strong>Dana terkumpul:</strong> Rp ${request.collected.toLocaleString()}</p>
-                        <p><strong>Sisa kebutuhan:</strong> Rp ${(request.amount - request.collected).toLocaleString()}</p>
+                        <p><strong>Siswa:</strong> ${studentName}</p>
+                        <p><strong>Kebutuhan:</strong> ${itemName}</p>
+                        <p><strong>Target biaya:</strong> Rp ${totalAmount.toLocaleString()}</p>
+                        <p><strong>Dana terkumpul:</strong> Rp ${collectedAmount.toLocaleString()}</p>
+                        <p><strong>Sisa kebutuhan:</strong> Rp ${remainingAmount.toLocaleString()}</p>
                     </div>
                 `,
                 input: 'number',
@@ -473,150 +625,77 @@
                     if (!value || value < 10000) {
                         return 'Minimal donasi adalah Rp 10.000'
                     }
-                    if (value > (request.amount - request.collected)) {
+                    if (value > remainingAmount) {
                         return 'Jumlah donasi melebihi kebutuhan'
                     }
                 }
             });
 
             if (donationAmount) {
-                // Get snap token from server
-                const response = await fetch('get-snap-token.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        item_id: `donation-${request.id}-${Date.now()}`,
-                        item_name: request.item,
-                        amount: donationAmount,
-                        donor_name: donorData.name,
-                        donor_email: donorData.email,
-                        donor_phone: donorData.phone
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.snapToken) {
-                    window.snap.pay(result.snapToken, {
-                        onSuccess: async function (result) {
-                            // Optional: Save result info or show success
-                            Swal.fire({
-                                title: 'Pembayaran Berhasil!',
-                                text: 'Terima kasih atas donasi Anda.',
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            });
-
-                            // Simulate success handling (update UI)
-                            request.collected += parseInt(donationAmount);
-                            request.progress = Math.round((request.collected / request.amount) * 100);
-
-                            donorData.donations.push({
-                                id: donorData.donations.length + 1,
-                                item: request.item,
-                                student: request.student,
-                                amount: parseInt(donationAmount),
-                                date: new Date().toISOString().split('T')[0],
-                                status: 'waiting_proof',
-                                note: 'Semoga bermanfaat untuk pendidikan!',
-                                proofUrl: null
-                            });
-
-                            updateStats();
-                            showSection('donations');
+                try {
+                    // Get snap token from server
+                    const response = await fetch('get-snap-token.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
                         },
-                        onPending: function (result) {
-                            Swal.fire('Menunggu Pembayaran', 'Silakan selesaikan pembayaran.', 'info');
-                        },
-                        onError: function (result) {
-                            Swal.fire('Gagal', 'Terjadi kesalahan saat memproses pembayaran.', 'error');
-                        },
-                        onClose: function () {
-                            console.log('Payment popup closed');
-                        }
+                        body: JSON.stringify({
+                            request_id: requestId,
+                            item_name: itemName,
+                            amount: parseInt(donationAmount),
+                            donor_name: donorData.name,
+                            donor_email: donorData.email,
+                            donor_phone: donorData.phone
+                        })
                     });
-                } else {
-                    Swal.fire('Error', 'Gagal mendapatkan token pembayaran.', 'error');
+
+                    const result = await response.json();
+
+                    if (result.snapToken) {
+                        window.snap.pay(result.snapToken, {
+                            onSuccess: async function (result) {
+                                Swal.fire({
+                                    title: 'Pembayaran Berhasil!',
+                                    text: 'Terima kasih atas donasi Anda.',
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    // Reload page to show updated data
+                                    location.reload();
+                                });
+                            },
+                            onPending: function (result) {
+                                Swal.fire('Menunggu Pembayaran', 'Silakan selesaikan pembayaran.', 'info');
+                            },
+                            onError: function (result) {
+                                Swal.fire('Gagal', 'Terjadi kesalahan saat memproses pembayaran.', 'error');
+                            },
+                            onClose: function () {
+                                console.log('Payment popup closed');
+                            }
+                        });
+                    } else {
+                        Swal.fire('Error', 'Gagal mendapatkan token pembayaran: ' + (result.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Terjadi kesalahan saat menghubungi server.', 'error');
                 }
             }
-        
-            
-            /*
-            if (donationAmount) {
-                // Show payment instructions
-                await Swal.fire({
-                    title: 'Instruksi Pembayaran',
-                    html: `
-                        <div style="text-align: left;">
-                            <h4>Transfer ke rekening siswa:</h4>
-                            <p><strong>Bank:</strong> BCA</p>
-                            <p><strong>No. Rekening:</strong> 1234567890</p>
-                            <p><strong>Atas Nama:</strong> ${request.student}</p>
-                            <p><strong>Jumlah:</strong> Rp ${parseInt(donationAmount).toLocaleString()}</p>
-                            <br>
-                            <p style="color: #666; font-size: 14px;">
-                                Setelah transfer, silakan upload bukti pembayaran melalui menu "Donasi Saya"
-                            </p>
-                        </div>
-                    `,
-                    icon: 'info',
-                    confirmButtonText: 'Saya Mengerti',
-                    confirmButtonColor: '#A78BFA'
-                });
-
-                // Show success message
-                await Swal.fire({
-                    title: 'Terima Kasih!',
-                    text: 'Donasi Anda sangat berarti untuk membantu pendidikan siswa.',
-                    icon: 'success',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#28A745'
-                });
-
-                // Update the request data
-                request.collected += parseInt(donationAmount);
-                request.progress = Math.round((request.collected / request.amount) * 100);
-                
-                // Add to donations history
-                donorData.donations.push({
-                    id: donorData.donations.length + 1,
-                    item: request.item,
-                    student: request.student,
-                    amount: parseInt(donationAmount),
-                    date: new Date().toISOString().split('T')[0],
-                    status: 'waiting_proof',
-                    note: 'Semoga bermanfaat untuk pendidikan!',
-                    proofUrl: null
-                });
-
-                // Update stats
-                updateStats();
-                
-                // Refresh the display
-                showSection('requests');
-            }*/
         }
 
         async function uploadProof(donationId) {
-            const donation = donorData.donations.find(d => d.id === donationId);
-
             const { value: file } = await Swal.fire({
                 title: 'Upload Bukti Transfer',
                 html: `
-                    <div style="text-align: left; margin: 20px 0;">
-                        <p><strong>Donasi:</strong> ${donation.item}</p>
-                        <p><strong>Jumlah:</strong> Rp ${donation.amount.toLocaleString()}</p>
-                        <p><strong>Untuk:</strong> ${donation.student}</p>
-                        <br>
-                        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                            <p>📁 Klik untuk memilih file bukti transfer</p>
-                            <p style="font-size: 14px; color: #666;">Format: JPG, PNG, PDF (Max: 5MB)</p>
-                        </div>
-                        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf" style="display: none;">
+                    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                        <div class="text-4xl mb-4">📁</div>
+                        <p class="text-lg font-medium mb-2">Klik untuk pilih file</p>
+                        <p class="text-sm text-gray-600">Format: JPG, PNG, PDF (Max: 5MB)</p>
+                        <input type="file" id="fileInput" accept="image/*,.pdf" style="display: none;" onchange="showFilePreview(this)">
                         <div id="filePreview" style="display: none;" class="file-preview">
-                            <p>✓ File terpilih: <span id="fileName"></span></p>
+                            <p id="fileName" class="font-medium text-green-700"></p>
+                            <p class="text-sm text-green-600">File berhasil dipilih</p>
                         </div>
                     </div>
                 `,
@@ -624,28 +703,14 @@
                 confirmButtonText: 'Upload',
                 cancelButtonText: 'Batal',
                 confirmButtonColor: '#28A745',
-                cancelButtonColor: '#DC3545',
-                didOpen: () => {
-                    const fileInput = document.getElementById('fileInput');
-                    const filePreview = document.getElementById('filePreview');
-                    const fileName = document.getElementById('fileName');
-
-                    fileInput.addEventListener('change', (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                            if (file.size > 5 * 1024 * 1024) {
-                                Swal.showValidationMessage('Ukuran file tidak boleh lebih dari 5MB');
-                                return;
-                            }
-                            fileName.textContent = file.name;
-                            filePreview.style.display = 'block';
-                        }
-                    });
-                },
                 preConfirm: () => {
                     const fileInput = document.getElementById('fileInput');
                     if (!fileInput.files[0]) {
                         Swal.showValidationMessage('Silakan pilih file bukti transfer');
+                        return false;
+                    }
+                    if (fileInput.files[0].size > 5 * 1024 * 1024) {
+                        Swal.showValidationMessage('Ukuran file tidak boleh lebih dari 5MB');
                         return false;
                     }
                     return fileInput.files[0];
@@ -653,130 +718,53 @@
             });
 
             if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('donationId', donationId);
+
                 // Show uploading progress
                 Swal.fire({
                     title: 'Mengupload Bukti Transfer...',
-                    html: '<div style="text-align: center;"><div class="progress-bar"><div class="progress-fill" id="uploadProgress" style="width: 0%"></div></div><p id="uploadText">Memproses file...</p></div>',
+                    html: '<div class="text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>',
                     allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        const progressBar = document.getElementById('uploadProgress');
-                        const uploadText = document.getElementById('uploadText');
-                        let progress = 0;
-
-                        const interval = setInterval(() => {
-                            progress += Math.random() * 30;
-                            if (progress > 100) progress = 100;
-
-                            progressBar.style.width = progress + '%';
-
-                            if (progress < 30) {
-                                uploadText.textContent = 'Memproses file...';
-                            } else if (progress < 70) {
-                                uploadText.textContent = 'Mengupload ke server...';
-                            } else if (progress < 100) {
-                                uploadText.textContent = 'Menyelesaikan upload...';
-                            } else {
-                                uploadText.textContent = 'Upload selesai!';
-                                clearInterval(interval);
-
-                                setTimeout(() => {
-                                    Swal.close();
-
-                                    // Update donation status
-                                    donation.status = 'pending';
-                                    donation.proofUrl = URL.createObjectURL(file);
-
-                                    Swal.fire({
-                                        title: 'Berhasil!',
-                                        text: 'Bukti transfer berhasil diupload. Menunggu validasi admin.',
-                                        icon: 'success',
-                                        confirmButtonText: 'OK',
-                                        confirmButtonColor: '#28A745'
-                                    });
-
-                                    // Refresh donations view
-                                    showSection('donations');
-                                }, 1000);
-                            }
-                        }, 200);
-                    }
+                    showConfirmButton: false
                 });
+
+                try {
+                    const response = await fetch('save-proof.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: 'Bukti transfer berhasil diupload. Menunggu validasi admin.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Reload to show updated data
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Gagal', data.message || 'Terjadi kesalahan saat menyimpan bukti.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    Swal.fire('Gagal', 'Terjadi kesalahan saat mengupload file.', 'error');
+                }
             }
         }
 
-        function filterRequests() {
-            const statusFilter = document.getElementById('filterStatus').value;
-            const searchFilter = document.getElementById('searchStudent').value.toLowerCase();
-
-            let filteredRequests = donorData.requests;
-
-            if (statusFilter) {
-                filteredRequests = filteredRequests.filter(r => r.status === statusFilter);
+        // Helper function for file preview
+        function showFilePreview(input) {
+            if (input.files && input.files[0]) {
+                const fileName = input.files[0].name;
+                document.getElementById('fileName').textContent = fileName;
+                document.getElementById('filePreview').style.display = 'block';
             }
-
-            if (searchFilter) {
-                filteredRequests = filteredRequests.filter(r =>
-                    r.student.toLowerCase().includes(searchFilter)
-                );
-            }
-
-            const grid = document.getElementById('requestsGrid');
-            grid.innerHTML = filteredRequests.map(request => `
-                <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all hover:transform hover:-translate-y-1">
-                    <h4 class="text-xl font-bold mb-3 text-gray-800">${request.item}</h4>
-                    <p class="text-gray-600 mb-2">Nama Siswa: <span class="font-medium">${request.student}</span></p>
-                    <p class="text-gray-600 mb-2">Estimasi: <span class="font-bold text-blue-600">Rp ${request.amount.toLocaleString()}</span></p>
-                    <p class="mb-3">Status: <span class="badge ${request.status}">${getStatusText(request.status)}</span></p>
-                    
-                    <div class="progress-bar mb-3">
-                        <div class="progress-fill" style="width: ${request.progress}%"></div>
-                    </div>
-                    <p class="text-sm text-gray-600 mb-4">Dana terkumpul: <span class="font-bold text-green-600">Rp ${request.collected.toLocaleString()}</span></p>
-                    
-                    <button class="w-full donate-button py-3 px-4 rounded-lg font-medium" onclick="donate(${request.id})">
-                        Donasi Sekarang
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function updateProfile(event) {
-            event.preventDefault();
-
-            const name = document.getElementById('profileName').value;
-            const email = document.getElementById('profileEmail').value;
-            const phone = document.getElementById('profilePhone').value;
-
-            // Update donor data
-            donorData.name = name;
-            donorData.email = email;
-            donorData.phone = phone;
-
-            // Update welcome text
-            document.getElementById('welcomeText').textContent = `Halo, ${name}`;
-
-            Swal.fire({
-                title: 'Berhasil!',
-                text: 'Profil berhasil diperbarui.',
-                icon: 'success',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#28A745'
-            });
-        }
-
-        function updateStats() {
-            // Update total donation amount
-            const totalDonations = donorData.donations.reduce((sum, d) => sum + d.amount, 0);
-            document.querySelector('.text-yellow-400').textContent = `Rp ${totalDonations.toLocaleString()}`;
-
-            // Update students helped (verified donations)
-            const studentsHelped = new Set(donorData.donations.filter(d => d.status === 'verified').map(d => d.student)).size;
-            document.querySelector('.text-blue-400').textContent = studentsHelped;
-
-            // Update active donations
-            const activeDonations = donorData.donations.filter(d => d.status !== 'verified').length;
-            document.querySelector('.text-green-400').textContent = activeDonations;
         }
 
         function logout() {
@@ -798,8 +786,7 @@
                         confirmButtonText: 'OK',
                         confirmButtonColor: '#28A745'
                     }).then(() => {
-                        // Redirect to login page or home
-                        window.location.href = '/login';
+                        window.location.href = 'logout.php';
                     });
                 }
             });
@@ -808,71 +795,7 @@
         // Initialize page
         document.addEventListener('DOMContentLoaded', function () {
             showSection('requests');
-            updateStats();
         });
-
-        // Sample notification system
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 transform translate-x-full transition-transform duration-300`;
-
-            switch (type) {
-                case 'success':
-                    notification.classList.add('bg-green-500');
-                    break;
-                case 'error':
-                    notification.classList.add('bg-red-500');
-                    break;
-                case 'warning':
-                    notification.classList.add('bg-yellow-500');
-                    break;
-                default:
-                    notification.classList.add('bg-blue-500');
-            }
-
-            notification.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <span>${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">×</button>
-                </div>
-            `;
-
-            document.body.appendChild(notification);
-
-            // Animate in
-            setTimeout(() => {
-                notification.classList.remove('translate-x-full');
-            }, 100);
-
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                notification.classList.add('translate-x-full');
-                setTimeout(() => {
-                    if (notification.parentElement) {
-                        notification.remove();
-                    }
-                }, 300);
-            }, 5000);
-        }
-
-        // Simulate real-time updates
-        setInterval(() => {
-            // Randomly update progress for demonstration
-            const randomRequest = donorData.requests[Math.floor(Math.random() * donorData.requests.length)];
-            if (randomRequest.progress < 100 && Math.random() > 0.95) {
-                const increase = Math.floor(Math.random() * 10) + 5;
-                randomRequest.collected += increase * 1000;
-                randomRequest.progress = Math.min(100, Math.round((randomRequest.collected / randomRequest.amount) * 100));
-
-                // Refresh view if on requests tab
-                if (document.getElementById('requests-btn').classList.contains('active')) {
-                    showSection('requests');
-                }
-
-                showNotification(`Dana untuk ${randomRequest.item} bertambah Rp ${(increase * 1000).toLocaleString()}!`, 'success');
-            }
-        }, 30000); // Check every 30 seconds
     </script>
 </body>
-
 </html>

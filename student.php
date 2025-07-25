@@ -6,6 +6,9 @@
     <title>Student Dashboard - Equalizer</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.all.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.css">
     <script>
         tailwind.config = {
             theme: {
@@ -237,18 +240,45 @@
             border-radius: 10px;
             margin: 10px 0;
         }
+
+        /* Custom SweetAlert2 styles */
+        .swal2-popup {
+            background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+            color: var(--light) !important;
+            border-radius: 20px !important;
+        }
+
+        .swal2-title {
+            color: var(--light) !important;
+        }
+
+        .swal2-content {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .swal2-confirm {
+            background: var(--highlight) !important;
+            color: var(--dark) !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+        }
+
+        .swal2-cancel {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-radius: 10px !important;
+        }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header class="px-6 md:px-10 py-5 flex justify-between items-center">
         <div class="flex items-center space-x-4">
-            <div class="text-2xl font-bold">🎓 Equalizer</div>
+            <div class="text-2xl font-bold">Equalizer</div>
             <span class="text-sm bg-blue-500 px-3 py-1 rounded-full">Student</span>
         </div>
         <div class="flex items-center space-x-4">
             <span class="hidden md:inline text-sm" id="welcomeText">Welcome!</span>
-            <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm transition-colors">
+            <button onclick="showLogoutConfirmation()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm transition-colors">
                 Logout
             </button>
         </div>
@@ -265,22 +295,22 @@
         <!-- Navigation Tabs -->
         <div class="flex flex-wrap gap-4 mb-8">
             <button onclick="showSection('profile')" class="nav-button active" id="profile-btn">
-                👤 Profil
+                Profil
             </button>
             <button onclick="showSection('verification')" class="nav-button" id="verification-btn">
-                🔍 Verifikasi Dokumen
+                Verifikasi Dokumen
             </button>
             <button onclick="showSection('requests')" class="nav-button" id="requests-btn">
-                📋 Permintaan Bantuan
+                Permintaan Bantuan
             </button>
             <button onclick="showSection('received')" class="nav-button" id="received-btn">
-                💰 Bantuan Diterima
+                Bantuan Diterima
             </button>
             <button onclick="showSection('validation')" class="nav-button" id="validation-btn">
-                📸 Upload Bukti
+                Upload Bukti
             </button>
             <button onclick="showSection('courses')" class="nav-button" id="courses-btn">
-                📚 Kursus Saya
+                Kursus Saya
             </button>
         </div>
 
@@ -408,118 +438,176 @@
             }
 
             async simulateAIAnalysis(file, documentType) {
-    await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
-    const isKartuKeluargaValid = (file) => {
-        // Check if file type is an image and file extension matches
-        const validExtensions = ['.jpg', '.jpeg', '.png']; 
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-        return validExtensions.includes(fileExtension);
-    };
+                const isKartuKeluargaValid = (file) => {
+                    // Check if file type is an image and file extension matches
+                    const validExtensions = ['.jpg', '.jpeg', '.png']; 
+                    const fileExtension = file.name.split('.').pop().toLowerCase();
+                    return validExtensions.includes(fileExtension);
+                };
 
-    const mockResults = {
-        // Simulated results for KTP (always valid)
-        ktp: {
-            isValid: true, // Always valid
-            confidence: 100, // Maximum confidence
-            issues: [],
-            details: {
-                hasPhoto: true,
-                hasSignature: true,
-                textClarity: 'good',
-                documentIntegrity: 'intact',
-                hologramDetected: true,
-                fontConsistency: 'consistent',
-                nameMatch: 'name matches'
-            }
-        },
-        // Simulated results for Kartu Keluarga
-        kartuKeluarga: {
-            isValid: isKartuKeluargaValid(file), // Valid only if it's a valid Kartu Keluarga file
-            confidence: isKartuKeluargaValid(file) ? 100 : 0, // 100 if valid, 0 if invalid
-            issues: isKartuKeluargaValid(file) ? [] : ['File bukan Kartu Keluarga yang valid'],
-            details: isKartuKeluargaValid(file) ? { familyMemberVerified: 'student name found' } : {}
-        }
-    };
+                const mockResults = {
+                    // Simulated results for KTP (always valid)
+                    ktp: {
+                        isValid: true, // Always valid
+                        confidence: 100, // Maximum confidence
+                        issues: [],
+                        details: {
+                            hasPhoto: true,
+                            hasSignature: true,
+                            textClarity: 'good',
+                            documentIntegrity: 'intact',
+                            hologramDetected: true,
+                            fontConsistency: 'consistent',
+                            nameMatch: 'name matches'
+                        }
+                    },
+                    // Simulated results for Kartu Keluarga
+                    kartuKeluarga: {
+                        isValid: isKartuKeluargaValid(file), // Valid only if it's a valid Kartu Keluarga file
+                        confidence: isKartuKeluargaValid(file) ? 100 : 0, // 100 if valid, 0 if invalid
+                        issues: isKartuKeluargaValid(file) ? [] : ['File bukan Kartu Keluarga yang valid'],
+                        details: isKartuKeluargaValid(file) ? { familyMemberVerified: 'student name found' } : {}
+                    }
+                };
 
-    // Return predefined result for the requested document type
-    return mockResults[documentType] || mockResults.ktp;
-}
-            // Checks for fake KTP by analyzing certain attributes like font or clarity
-            checkForFakeKTP(file) {
-                // Example logic: check if certain attributes (like font) indicate a fake document
-                return Math.random() > 0.5; // In real implementation, you would check image quality and content
-            }
-
-            checkForFakeKartuKeluarga(file) {
-                // Check for discrepancies in the Kartu Keluarga document like missing family data
-                return Math.random() > 0.5; // Simulate a check
-            }
-
-            // Check if the font in the document matches standard fonts (for authenticity)
-            checkFontConsistency(file) {
-                // Simulated logic to check for font consistency (replace with actual analysis)
-                return Math.random() > 0.3; // 70% chance for consistency
-            }
-
-            // Compare student name in the document to the profile
-            checkStudentName(file) {
-                // Check if the student's name in the KTP matches the profile (simulated here)
-                const studentName = 'Ahmad Rizki'; // Example, replace with actual profile name
-                const documentName = 'Mira Setiawan'; // Replace with extracted name from the document
-                return studentName === documentName;
-            }
-
-            // Generate KTP-specific issues (like clarity and manipulation)
-            generateKTPIssues() {
-                const issues = [];
-                if (Math.random() > 0.3) issues.push('Gambar buram atau tidak jelas');
-                if (Math.random() > 0.4) issues.push('Kemungkinan manipulasi digital terdeteksi');
-                if (Math.random() > 0.5) issues.push('Hologram tidak terdeteksi');
-                return issues;
-            }
-
-            // Generate Kartu Keluarga-specific issues (like data inconsistency)
-            generateKKIssues() {
-                const issues = [];
-                if (Math.random() > 0.3) issues.push('Header dokumen tidak sesuai format resmi');
-                if (Math.random() > 0.4) issues.push('Kemungkinan data telah dimanipulasi');
-                return issues;
-            }
-
-            checkFamilyMemberExistence() {
-                // Logic to check if the student's name exists in the Kartu Keluarga's family list
-                const studentName = 'Ahmad Rizki'; // Replace with actual student's name from profile
-                const familyMembers = ['Budi Santoso', 'Siti Aisyah', 'Ahmad Rizki', 'Joko Widodo']; // Example, replace with actual data from Kartu Keluarga
-                return familyMembers.includes(studentName);
+                // Return predefined result for the requested document type
+                return mockResults[documentType] || mockResults.ktp;
             }
         }
 
         const documentVerifier = new DocumentVerifier();
 
-        // Load user data on page load
-        /*
-        document.addEventListener('DOMContentLoaded', function() {
-            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            
-            if (!isLoggedIn || userData.peran !== 'pelajar') {
-                alert('Anda harus login sebagai pelajar untuk mengakses halaman ini.');
-                window.location.href = 'index.php';
-                return;
-            }
-            
-            // Update student data with logged in user info
-            if (userData.nama) {
-                studentData.name = userData.nama;
-                document.getElementById('welcomeText').textContent = `Halo, ${userData.nama}!`;
-                document.getElementById('studentName').textContent = `Dashboard ${userData.nama}`;
-            }
-            
-            // Initialize with profile section
-            showSection('profile');
-        });
-        */
+        // SweetAlert2 Functions
+        function showSuccessAlert(title, text, callback = null) {
+            Swal.fire({
+                icon: 'success',
+                title: title,
+                text: text,
+                confirmButtonText: 'OK',
+                backdrop: true,
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed && callback) {
+                    callback();
+                }
+            });
+        }
+
+        function showErrorAlert(title, text) {
+            Swal.fire({
+                icon: 'error',
+                title: title,
+                text: text,
+                confirmButtonText: 'OK'
+            });
+        }
+
+        function showWarningAlert(title, text) {
+            Swal.fire({
+                icon: 'warning',
+                title: title,
+                text: text,
+                confirmButtonText: 'OK'
+            });
+        }
+
+        function showInfoAlert(title, text) {
+            Swal.fire({
+                icon: 'info',
+                title: title,
+                text: text,
+                confirmButtonText: 'OK'
+            });
+        }
+
+        function showConfirmDialog(title, text, callback) {
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    callback();
+                }
+            });
+        }
+
+        function showLogoutConfirmation() {
+            Swal.fire({
+                title: 'Konfirmasi Logout',
+                text: 'Apakah Anda yakin ingin keluar dari dashboard?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Logout',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Logging out...',
+                        text: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Simulate logout process
+                    setTimeout(() => {
+                        logout();
+                    }, 1500);
+                }
+            });
+        }
+
+        function showVerificationSuccess() {
+            Swal.fire({
+                icon: 'success',
+                title: 'Dokumen Terverifikasi!',
+                text: 'Selamat! Dokumen Anda telah berhasil diverifikasi. Anda sekarang dapat mengajukan bantuan.',
+                confirmButtonText: 'Lihat Dashboard',
+                allowOutsideClick: false
+            }).then(() => {
+                showSection('profile');
+            });
+        }
+
+        function showDeleteConfirmation(itemName, callback) {
+            Swal.fire({
+                title: 'Hapus Item?',
+                text: `Apakah Anda yakin ingin menghapus "${itemName}"? Tindakan ini tidak dapat dibatalkan.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    callback();
+                    showSuccessAlert('Dihapus!', 'Item berhasil dihapus.');
+                }
+            });
+        }
+
+        function showLoadingAlert(title = 'Memproses...', text = 'Mohon tunggu sebentar') {
+            Swal.fire({
+                title: title,
+                text: text,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
 
         function showSection(section) {
             // Update active button
@@ -562,7 +650,7 @@
                                         <h3 class="text-lg font-semibold">Total Permintaan</h3>
                                         <p class="text-2xl font-bold text-yellow-400">${studentData.requests.length}</p>
                                     </div>
-                                    <div class="text-3xl">📋</div>
+                                    <div class="text-3xl"></div>
                                 </div>
                             </div>
                             <div class="card rounded-xl p-6">
@@ -571,7 +659,7 @@
                                         <h3 class="text-lg font-semibold">Bantuan Diterima</h3>
                                         <p class="text-2xl font-bold text-blue-400">${studentData.received.length}</p>
                                     </div>
-                                    <div class="text-3xl">💰</div>
+                                    <div class="text-3xl"></div>
                                 </div>
                             </div>
                             <div class="card rounded-xl p-6">
@@ -588,11 +676,11 @@
                         <!-- Profile Form -->
                         <div class="card rounded-xl p-8">
                             <h3 class="text-2xl font-bold mb-6">Profil Saya</h3>
-                            <form class="space-y-4">
+                            <form id="profileForm" class="space-y-4">
                                 <div class="grid md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium mb-2">Nama Lengkap:</label>
-                                        <input type="text" value="${studentData.name}" class="input-field" readonly>
+                                        <input type="text" value="${studentData.name}" class="input-field">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium mb-2">Umur:</label>
@@ -623,7 +711,24 @@
                             </form>
                         </div>
                     `;
+
+                    // Add event listener for profile form
+                    document.getElementById('profileForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        showConfirmDialog(
+                            'Update Profil?',
+                            'Apakah Anda yakin ingin menyimpan perubahan profil?',
+                            () => {
+                                showLoadingAlert('Menyimpan Profil...', 'Mohon tunggu sebentar');
+                                setTimeout(() => {
+                                    Swal.close();
+                                    showSuccessAlert('Berhasil!', 'Profil Anda telah berhasil diperbarui.');
+                                }, 2000);
+                            }
+                        );
+                    });
                     break;
+
                 case 'verification':
                     content.innerHTML = `
                         <h3 class="text-2xl font-bold mb-4">Verifikasi Dokumen dengan AI</h3>
@@ -643,206 +748,207 @@
                         </div>
 
                         <!-- Document Upload Forms -->
-                        <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        <div class="grid md:grid-cols-2 gap-6">
                             <!-- KTP Upload -->
                             <div class="card rounded-xl p-6">
-                                <h4 class="text-lg font-bold mb-4">📄 Upload KTP</h4>
-                                <div class="space-y-4">
-                                    <input type="file" id="ktpFile" accept="image/*" class="input-field" onchange="previewDocument(this, 'ktp')">
-                                    <div id="ktpPreview"></div>
-                                    <button onclick="verifyDocument('ktp')" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
-                                        🤖 Verifikasi dengan AI
-                                    </button>
-                                    <div id="ktpAnalysis"></div>
+                                <h4 class="text-lg font-bold mb-4 flex items-center">
+                                    <span class="mr-2">🆔</span>
+                                    Kartu Tanda Penduduk (KTP)
+                                </h4>
+                                <div class="mb-4">
+                                    <input type="file" id="ktpFile" accept="image/*" class="input-field">
+                                    <p class="text-xs mt-2 opacity-70">Format: JPG, PNG (Maks. 5MB)</p>
                                 </div>
+                                <button onclick="uploadDocument('ktp')" class="w-full bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                    Upload & Verifikasi KTP
+                                </button>
+                                <div id="ktpAnalysis" class="mt-4"></div>
                             </div>
 
                             <!-- Kartu Keluarga Upload -->
                             <div class="card rounded-xl p-6">
-                                <h4 class="text-lg font-bold mb-4">👨‍👩‍👧‍👦 Upload Kartu Keluarga</h4>
-                                <div class="space-y-4">
-                                    <input type="file" id="kkFile" accept="image/*" class="input-field" onchange="previewDocument(this, 'kartuKeluarga')">
-                                    <div id="kkPreview"></div>
-                                    <button onclick="verifyDocument('kartuKeluarga')" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
-                                        🤖 Verifikasi dengan AI
-                                    </button>
-                                    <div id="kkAnalysis"></div>
+                                <h4 class="text-lg font-bold mb-4 flex items-center">
+                                    <span class="mr-2">👨‍👩‍👧‍👦</span>
+                                    Kartu Keluarga
+                                </h4>
+                                <div class="mb-4">
+                                    <input type="file" id="kartuKeluargaFile" accept="image/*" class="input-field">
+                                    <p class="text-xs mt-2 opacity-70">Format: JPG, PNG (Maks. 5MB)</p>
                                 </div>
+                                <button onclick="uploadDocument('kartuKeluarga')" class="w-full bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                    Upload & Verifikasi KK
+                                </button>
+                                <div id="kartuKeluargaAnalysis" class="mt-4"></div>
                             </div>
                         </div>
 
-                       <!-- Verification History -->
-                        <div class="card rounded-xl p-6">
-                            <h4 class="text-lg font-bold mb-4">📋 Riwayat Verifikasi</h4>
-                            ${studentData.verificationHistory.length > 0 ? 
-                                studentData.verificationHistory.map(item => `
-
-                                    <div class="border-b border-gray-600 pb-4 mb-4 last:border-b-0 last:mb-0">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <h5 class="font-semibold">${item.type}</h5>
-                                                <p class="text-sm opacity-80">${new Date(item.date).toLocaleDateString('id-ID')}</p>
-                                                <span class="badge ${item.status}">${item.status.toUpperCase()}</span>
+                        <!-- Verification History -->
+                        ${studentData.verificationHistory.length > 0 ? `
+                            <div class="card rounded-xl p-6 mt-8">
+                                <h4 class="text-xl font-bold mb-4">Riwayat Verifikasi</h4>
+                                <div class="space-y-4">
+                                    ${studentData.verificationHistory.map(history => `
+                                        <div class="border border-gray-600 rounded-lg p-4">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <h5 class="font-semibold">${history.type}</h5>
+                                                <span class="badge ${history.status}">${history.status}</span>
                                             </div>
-                                            <div class="text-right">
-                                                <p class="text-sm">AI Score: ${item.aiScore}/100</p>
-                                                <div class="progress-bar w-20 mt-1">
-                                                    <div class="progress-fill" style="width: ${item.aiScore}%"></div>
-                                                </div>
-                                            </div>
+                                            <p class="text-sm mb-2">Tanggal: ${formatDate(history.date)}</p>
+                                            <p class="text-sm mb-2">Skor AI: ${history.aiScore}/100</p>
+                                            ${history.reason ? `<p class="text-sm text-red-400">Alasan: ${history.reason}</p>` : ''}
                                         </div>
-                                        ${item.reason ? `<p class="text-sm mt-2 text-red-300">Alasan: ${item.reason}</p>` : ''}
-                                    </div>
-                                `).join('') : 
-                                '<p class="text-center text-gray-400">Belum ada riwayat verifikasi</p>' 
-                            }
-                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     `;
                     break;
-                    case 'requests':
+
+                case 'requests':
                     content.innerHTML = `
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-2xl font-bold">Permintaan Bantuan Saya</h3>
-                            ${studentData.verificationStatus === 'verified' ? 
-                                '<button onclick="openModal()" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold transition-colors">+ Tambah Permintaan</button>' :
-                                '<div class="text-sm text-yellow-400">⚠️ Verifikasi dokumen terlebih dahulu untuk menambah permintaan</div>'
-                            }
-                        </div>
-                        
-                        <div class="grid gap-6">
-                            ${studentData.requests.map(request => `
-                                <div class="card rounded-xl p-6">
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h4 class="text-xl font-bold">${request.item}</h4>
-                                            <p class="text-sm opacity-80 mt-1">${request.detail}</p>
-                                        </div>
-                                        <span class="badge ${request.status}">${request.status}</span>
-                                    </div>
-                                    
-                                    <div class="grid md:grid-cols-2 gap-4 mb-4">
-                                        <div>
-                                            <p class="text-sm opacity-80">Target Biaya:</p>
-                                            <p class="text-lg font-bold">Rp ${request.amount.toLocaleString('id-ID')}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm opacity-80">Terkumpul:</p>
-                                            <p class="text-lg font-bold text-green-400">Rp ${request.collected.toLocaleString('id-ID')}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-4">
-                                        <div class="flex justify-between text-sm mb-2">
-                                            <span>Progress</span>
-                                            <span>${request.progress}%</span>
-                                        </div>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: ${request.progress}%"></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex space-x-2">
-                                        <button class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
-                                            Lihat Detail
-                                        </button>
-                                        ${request.status === 'completed' ? 
-                                            '<button class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-lg text-sm transition-colors">Upload Bukti</button>' : ''
-                                        }
-                                    </div>
+                            ${studentData.verificationStatus === 'verified' ? `
+                                <button onclick="openModal()" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                                    + Tambah Permintaan
+                                </button>
+                            ` : `
+                                <div class="text-right">
+                                    <button class="bg-gray-500 px-6 py-3 rounded-lg font-semibold cursor-not-allowed opacity-50" disabled>
+                                        + Tambah Permintaan
+                                    </button>
+                                    <p class="text-xs mt-1 text-red-400">Verifikasi dokumen terlebih dahulu</p>
                                 </div>
-                            `).join('')}
+                            `}
                         </div>
+
+                        ${studentData.requests.length === 0 ? `
+                            <div class="card rounded-xl p-8 text-center">
+                                <div class="text-6xl mb-4">📝</div>
+                                <h4 class="text-xl font-bold mb-2">Belum Ada Permintaan</h4>
+                                <p class="opacity-70 mb-4">Anda belum membuat permintaan bantuan. Mulai dengan menambah permintaan baru.</p>
+                                ${studentData.verificationStatus === 'verified' ? `
+                                    <button onclick="openModal()" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                                        Tambah Permintaan Pertama
+                                    </button>
+                                ` : `
+                                    <p class="text-red-400 text-sm">Silakan verifikasi dokumen terlebih dahulu</p>
+                                `}
+                            </div>
+                        ` : `
+                            <div class="grid gap-6">
+                                ${studentData.requests.map(request => `
+                                    <div class="card rounded-xl p-6">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h4 class="text-xl font-bold">${request.item}</h4>
+                                                <p class="opacity-80">${request.detail}</p>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="badge ${request.status}">${getStatusText(request.status)}</span>
+                                                <button onclick="deleteRequest(${request.id})" class="text-red-400 hover:text-red-300 p-1">
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="mb-4">
+                                            <div class="flex justify-between text-sm mb-2">
+                                                <span>Progress: ${request.progress}%</span>
+                                                <span>Rp ${request.collected.toLocaleString()} / Rp ${request.amount.toLocaleString()}</span>
+                                            </div>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: ${request.progress}%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between items-center text-sm">
+                                            <span>Target: Rp ${request.amount.toLocaleString()}</span>
+                                            <span>Sisa: Rp ${(request.amount - request.collected).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
                     `;
                     break;
+
                 case 'received':
                     content.innerHTML = `
                         <h3 class="text-2xl font-bold mb-6">Bantuan yang Diterima</h3>
                         
-                        <div class="grid gap-6">
-                            ${studentData.received.map(item => `
-                                <div class="card rounded-xl p-6">
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h4 class="text-xl font-bold">${item.item}</h4>
-                                            <p class="text-sm opacity-80">Dari: ${item.donor}</p>
-                                            <p class="text-sm opacity-80">Tanggal: ${new Date(item.date).toLocaleDateString('id-ID')}</p>
+                        ${studentData.received.length === 0 ? `
+                            <div class="card rounded-xl p-8 text-center">
+                                <div class="text-6xl mb-4">🎁</div>
+                                <h4 class="text-xl font-bold mb-2">Belum Ada Bantuan Diterima</h4>
+                                <p class="opacity-70">Bantuan yang Anda terima akan muncul di sini.</p>
+                            </div>
+                        ` : `
+                            <div class="grid gap-6">
+                                ${studentData.received.map(item => `
+                                    <div class="card rounded-xl p-6">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h4 class="text-xl font-bold">${item.item}</h4>
+                                                <p class="opacity-80">Dari: ${item.donor}</p>
+                                                <p class="text-sm opacity-70">Tanggal: ${formatDate(item.date)}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-2xl font-bold text-green-400">Rp ${item.amount.toLocaleString()}</div>
+                                                <span class="badge ${item.status}">${getStatusText(item.status)}</span>
+                                            </div>
                                         </div>
-                                        <span class="badge ${item.status}">${item.status}</span>
+                                        ${item.proof ? `
+                                            <div class="mt-4">
+                                                <p class="text-sm font-semibold mb-2">Bukti Penggunaan:</p>
+                                                <div class="bg-gray-700 p-3 rounded-lg text-sm">
+                                                    📷 ${item.proof}
+                                                </div>
+                                            </div>
+                                        ` : ''}
                                     </div>
-                                    
-                                    <div class="grid md:grid-cols-2 gap-4 mb-4">
-                                        <div>
-                                            <p class="text-sm opacity-80">Jumlah Bantuan:</p>
-                                            <p class="text-lg font-bold text-green-400">Rp ${item.amount.toLocaleString('id-ID')}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm opacity-80">Status:</p>
-                                            <p class="text-lg font-bold">${item.status === 'completed' ? 'Selesai' : 'Dalam Proses'}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    ${item.proof ? `
-                                        <div class="mb-4">
-                                            <p class="text-sm opacity-80 mb-2">Bukti Penggunaan:</p>
-                                            <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=" alt="Bukti" class="document-preview">
-                                        </div>
-                                    ` : ''}
-                                    
-                                    <div class="flex space-x-2">
-                                        <button class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
-                                            Hubungi Donor
-                                        </button>
-                                        <button class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg text-sm transition-colors">
-                                            Kirim Terima Kasih
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                            
-                            ${studentData.received.length === 0 ? 
-                                '<div class="card rounded-xl p-8 text-center"><p class="text-gray-400">Belum ada bantuan yang diterima</p></div>' : ''
-                            }
-                        </div>
+                                `).join('')}
+                            </div>
+                        `}
                     `;
                     break;
-                    case 'validation':
+
+                case 'validation':
                     content.innerHTML = `
-                        <h3 class="text-2xl font-bold mb-6">Upload Bukti Penggunaan Bantuan</h3>
-                        <p class="mb-6 opacity-80">Upload foto atau dokumen sebagai bukti bahwa bantuan telah digunakan sesuai tujuan.</p>
+                        <h3 class="text-2xl font-bold mb-4">Upload Bukti Penggunaan</h3>
+                        <p class="mb-6 opacity-80">Upload bukti penggunaan dana bantuan yang telah Anda terima.</p>
                         
-                        <div class="grid gap-6">
-                            ${studentData.received.filter(item => item.status === 'completed' && !item.proof).map(item => `
-                                <div class="card rounded-xl p-6">
-                                    <h4 class="text-xl font-bold mb-4">🎯 ${item.item}</h4>
-                                    <p class="text-sm opacity-80 mb-4">Bantuan dari: ${item.donor} - Rp ${item.amount.toLocaleString('id-ID')}</p>
-                                    
-                                    <div class="space-y-4">
-                                        <div>
-                                            <label class="block text-sm font-medium mb-2">Upload Bukti (Foto/Dokumen):</label>
-                                            <input type="file" accept="image/*,application/pdf" class="input-field" onchange="previewProof(this, ${item.id})">
+                        ${studentData.received.filter(item => !item.proof).length === 0 ? `
+                            <div class="card rounded-xl p-8 text-center">
+                                <div class="text-6xl mb-4">✅</div>
+                                <h4 class="text-xl font-bold mb-2">Semua Bukti Sudah Diupload</h4>
+                                <p class="opacity-70">Tidak ada bantuan yang memerlukan bukti penggunaan saat ini.</p>
+                            </div>
+                        ` : `
+                            <div class="grid gap-6">
+                                ${studentData.received.filter(item => !item.proof).map(item => `
+                                    <div class="card rounded-xl p-6">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h4 class="text-xl font-bold">${item.item}</h4>
+                                                <p class="opacity-80">Bantuan dari: ${item.donor}</p>
+                                                <p class="text-lg font-semibold text-green-400">Rp ${item.amount.toLocaleString()}</p>
+                                            </div>
+                                            <span class="badge pending">Perlu Bukti</span>
                                         </div>
-                                        
-                                        <div id="proof-preview-${item.id}"></div>
-                                        
-                                        <div>
-                                            <label class="block text-sm font-medium mb-2">Keterangan Penggunaan:</label>
-                                            <textarea class="input-field h-24" placeholder="Jelaskan bagaimana bantuan ini digunakan..."></textarea>
+                                        <div class="mt-4">
+                                            <label class="block text-sm font-medium mb-2">Upload Bukti Penggunaan:</label>
+                                            <input type="file" id="proof-${item.id}" accept="image/*" class="input-field mb-3">
+                                            <button onclick="uploadProof(${item.id})" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                                Upload Bukti
+                                            </button>
                                         </div>
-                                        
-                                        <button onclick="submitProof(${item.id})" class="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold transition-colors">
-                                            📤 Submit Bukti
-                                        </button>
                                     </div>
-                                </div>
-                            `).join('')}
-                            
-                            ${studentData.received.filter(item => item.status === 'completed' && !item.proof).length === 0 ? 
-                                '<div class="card rounded-xl p-8 text-center"><p class="text-gray-400">Tidak ada bantuan yang perlu divalidasi</p></div>' : ''
-                            }
-                        </div>
+                                `).join('')}
+                            </div>
+                        `}
                     `;
                     break;
-                    case 'courses':
+
+               case 'courses':
                     content.innerHTML = `
   <div class="mb-6">
     <h3 class="text-2xl font-bold mb-2">Belajar Bersama Volunteer</h3>
@@ -908,152 +1014,164 @@
         // Helper functions
         function getVerificationStatusText(status) {
             const statusMap = {
-                unverified: 'Belum Diverifikasi',
-                pending: 'Dalam Proses',
-                verified: 'Terverifikasi',
-                rejected: 'Ditolak'
+                'unverified': 'Belum Diverifikasi',
+                'pending': 'Sedang Diproses',
+                'verified': 'Terverifikasi',
+                'rejected': 'Ditolak'
             };
             return statusMap[status] || status;
         }
 
         function getVerificationColor(status) {
             const colorMap = {
-                unverified: 'text-yellow-400',
-                pending: 'text-blue-400',
-                verified: 'text-green-400',
-                rejected: 'text-red-400'
+                'unverified': 'text-red-400',
+                'pending': 'text-yellow-400',
+                'verified': 'text-green-400',
+                'rejected': 'text-red-400'
             };
             return colorMap[status] || 'text-gray-400';
         }
 
         function getVerificationIcon(status) {
             const iconMap = {
-                unverified: '⚠️',
-                pending: '⏳',
-                verified: '✅',
-                rejected: '❌'
+                'unverified': '❌',
+                'pending': '⏳',
+                'verified': '✅',
+                'rejected': '❌'
             };
             return iconMap[status] || '❓';
         }
 
         function getVerificationDescription(status) {
-            const descMap = {
-                unverified: 'Silakan upload dokumen identitas Anda untuk memulai proses verifikasi.',
-                pending: 'Dokumen Anda sedang dianalisis oleh sistem AI. Proses ini biasanya memakan waktu 2-5 menit.',
-                verified: 'Selamat! Dokumen Anda telah berhasil diverifikasi. Anda sekarang dapat mengajukan bantuan.',
-                rejected: 'Dokumen Anda tidak dapat diverifikasi. Silakan periksa kualitas gambar dan upload ulang.'
+            const descriptionMap = {
+                'unverified': 'Silakan upload dokumen KTP dan Kartu Keluarga untuk memulai proses verifikasi.',
+                'pending': 'Dokumen Anda sedang dianalisis oleh sistem AI. Proses ini biasanya memakan waktu beberapa menit.',
+                'verified': 'Dokumen Anda telah terverifikasi. Anda dapat mengajukan bantuan sekarang.',
+                'rejected': 'Dokumen Anda tidak memenuhi kriteria verifikasi. Silakan upload ulang dengan kualitas yang lebih baik.'
             };
-            return descMap[status] || 'Status tidak dikenal.';
+            return descriptionMap[status] || 'Status tidak diketahui.';
         }
 
-        // Document verification functions
-        function previewDocument(input, type) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const previewContainer = document.getElementById(type === 'ktp' ? 'ktpPreview' : 
-                                                                type === 'kartuKeluarga' ? 'kkPreview' : 'certificatePreview');
-                previewContainer.innerHTML = `
-                    <div class="mt-4">
-                        <p class="text-sm font-medium mb-2">Preview:</p>
-                        <img src="${e.target.result}" alt="Document preview" class="document-preview border border-gray-300 rounded-lg">
-                    </div>
-                `;
+        function getStatusText(status) {
+            const statusMap = {
+                'urgent': 'Mendesak',
+                'pending': 'Menunggu',
+                'completed': 'Selesai'
             };
-            reader.readAsDataURL(file);
+            return statusMap[status] || status;
         }
 
-        async function verifyDocument(type) {
-            const fileInput = document.getElementById(type === 'ktp' ? 'ktpFile' : 'kkFile');
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        // Document upload and verification
+        async function uploadDocument(docType) {
+            const fileInput = document.getElementById(docType + 'File');
             const file = fileInput.files[0];
             
             if (!file) {
-                alert('Silakan pilih file terlebih dahulu!');
+                showWarningAlert('Peringatan', 'Silakan pilih file terlebih dahulu.');
                 return;
             }
 
-            const analysisContainer = document.getElementById(type === 'ktp' ? 'ktpAnalysis' : 'kkAnalysis');
-            
-            // Show loading
-            analysisContainer.innerHTML = `
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                showErrorAlert('File Terlalu Besar', 'Ukuran file maksimal 5MB.');
+                return;
+            }
+
+            const analysisDiv = document.getElementById(docType + 'Analysis');
+            analysisDiv.innerHTML = `
                 <div class="ai-analysis">
-                    <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-3 mb-3">
                         <div class="spinner"></div>
-                        <div>
-                            <h5 class="font-bold">🤖 AI sedang menganalisis dokumen...</h5>
-                            <p class="text-sm mt-1">Mohon tunggu, proses ini memakan waktu 2-5 menit</p>
-                        </div>
+                        <span class="font-semibold">🤖 AI sedang menganalisis dokumen...</span>
                     </div>
+                    <p class="text-sm opacity-80">Sistem AI sedang memverifikasi keaslian dan kevalidan dokumen Anda.</p>
                 </div>
             `;
 
             try {
-                const result = await documentVerifier.analyzeDocument(file, type);
-
-                analysisContainer.innerHTML = `
+                const result = await documentVerifier.analyzeDocument(file, docType);
+                
+                analysisDiv.innerHTML = `
                     <div class="ai-analysis">
-                        <h5 class="font-bold mb-3">🤖 Hasil Analisis AI</h5>
-
-                        <div class="grid md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <p class="text-sm opacity-80">Status Verifikasi:</p>
-                                <p class="font-bold ${result.isValid ? 'text-green-400' : 'text-red-400'}">
-                                    ${result.isValid ? '✅ Valid' : '❌ Tidak Valid'}
-                                </p>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-semibold">🤖 Hasil Analisis AI</span>
+                            <span class="badge ${result.isValid ? 'verified' : 'rejected'}">
+                                ${result.isValid ? 'Valid' : 'Invalid'}
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Confidence Score</span>
+                                <span>${result.confidence}%</span>
                             </div>
-                            <div>
-                                <p class="text-sm opacity-80">Confidence Score:</p>
-                                <p class="font-bold">${result.confidence}/100</p>
-                                <div class="progress-bar mt-1">
-                                    <div class="progress-fill" style="width: ${result.confidence}%"></div>
-                                </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${result.confidence}%"></div>
                             </div>
                         </div>
-
                         ${result.issues.length > 0 ? `
-                            <div class="mb-4">
-                                <p class="text-sm font-medium text-red-400 mb-2">Issues Detected:</p>
+                            <div class="mb-3">
+                                <p class="text-sm font-semibold text-red-400 mb-1">Issues Found:</p>
                                 <ul class="text-sm space-y-1">
-                                    ${result.issues.map(issue => `<li class="flex items-start space-x-2"><span class="text-red-400">•</span><span>${issue}</span></li>`).join('')}
+                                    ${result.issues.map(issue => `<li class="text-red-400">• ${issue}</li>`).join('')}
                                 </ul>
                             </div>
                         ` : ''}
-
-                        <div class="mb-4">
-                            <p class="text-sm font-medium text-red-400">Nama pelajar: ${result.details.nameMatch}</p>
+                        <div class="text-xs opacity-70">
+                            <p>Analysis Details: ${Object.entries(result.details).map(([key, value]) => `${key}: ${value}`).join(', ')}</p>
                         </div>
                     </div>
                 `;
 
-                // Update verification history
-                studentData.verificationHistory.unshift({
-                    date: new Date().toISOString().split('T')[0],
-                    type: type.toUpperCase(),
-                    status: result.isValid ? 'verified' : 'rejected',
-                    reason: result.issues.length > 0 ? result.issues.join(', ') : null,
-                    aiScore: result.confidence
-                });
+                if (result.isValid) {
+                    studentData.documents[docType] = file.name;
+                    
+                    // Add to verification history
+                    studentData.verificationHistory.push({
+                        date: new Date().toISOString().split('T')[0],
+                        type: docType.toUpperCase(),
+                        status: 'verified',
+                        reason: null,
+                        aiScore: result.confidence
+                    });
 
-                // Update overall verification status
-                if (result.isValid && result.confidence > 80) {
-                    studentData.verificationStatus = 'verified';
-                    setTimeout(() => {
-                        alert('🎉 Dokumen berhasil diverifikasi! Anda sekarang dapat mengajukan bantuan.');
-                        showSection('profile'); // Refresh to show new status
-                    }, 1000);
+                    // Check if all required documents are verified
+                    const requiredDocs = ['ktp', 'kartuKeluarga'];
+                    const verifiedDocs = requiredDocs.filter(doc => studentData.documents[doc]);
+                    
+                    if (verifiedDocs.length === requiredDocs.length) {
+                        studentData.verificationStatus = 'verified';
+                        setTimeout(() => {
+                            showVerificationSuccess();
+                        }, 1000);
+                    }
+                    
+                    showSuccessAlert('Dokumen Valid!', `${docType.toUpperCase()} Anda telah berhasil diverifikasi dengan skor ${result.confidence}%.`);
                 } else {
-                    studentData.verificationStatus = 'rejected';
+                    studentData.verificationHistory.push({
+                        date: new Date().toISOString().split('T')[0],
+                        type: docType.toUpperCase(),
+                        status: 'rejected',
+                        reason: result.issues.join(', '),
+                        aiScore: result.confidence
+                    });
+                    
+                    showErrorAlert('Dokumen Invalid', `Dokumen ${docType.toUpperCase()} tidak memenuhi kriteria verifikasi. Silakan upload ulang dengan kualitas yang lebih baik.`);
                 }
-
             } catch (error) {
-                analysisContainer.innerHTML = `
-                    <div class="ai-analysis border-red-500">
-                        <h5 class="font-bold text-red-400 mb-2">❌ Error Verifikasi</h5>
-                        <p class="text-sm">Terjadi kesalahan saat memproses dokumen. Silakan coba lagi.</p>
+                analysisDiv.innerHTML = `
+                    <div class="ai-analysis">
+                        <div class="text-red-400">
+                            <span class="font-semibold">❌ Error Analysis</span>
+                            <p class="text-sm mt-1">Terjadi kesalahan saat menganalisis dokumen. Silakan coba lagi.</p>
+                        </div>
                     </div>
                 `;
+                showErrorAlert('Error', 'Terjadi kesalahan saat menganalisis dokumen. Silakan coba lagi.');
             }
         }
 
@@ -1067,36 +1185,96 @@
             document.getElementById('addRequestForm').reset();
         }
 
-        // Handle form submission
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('addRequestForm');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const newRequest = {
-                        id: studentData.requests.length + 1,
-                        item: document.getElementById('requestType').value,
-                        detail: document.getElementById('requestDetail').value,
-                        amount: parseInt(document.getElementById('requestAmount').value),
-                        status: document.getElementById('requestUrgency').value,
-                        progress: 0,
-                        collected: 0
-                    };
-                    
+        // Add request form handler
+        document.getElementById('addRequestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const newRequest = {
+                id: studentData.requests.length + 1,
+                item: document.getElementById('requestType').value === 'lainnya' ? 
+                      'Kebutuhan Lainnya' : 
+                      document.getElementById('requestType').options[document.getElementById('requestType').selectedIndex].text,
+                detail: document.getElementById('requestDetail').value,
+                amount: parseInt(document.getElementById('requestAmount').value),
+                status: document.getElementById('requestUrgency').value,
+                progress: 0,
+                collected: 0
+            };
+
+            showConfirmDialog(
+                'Tambah Permintaan?',
+                'Apakah Anda yakin ingin menambah permintaan bantuan ini?',
+                () => {
                     studentData.requests.push(newRequest);
                     closeModal();
+                    showSuccessAlert('Berhasil!', 'Permintaan bantuan telah ditambahkan.');
                     showSection('requests');
-                    alert('Permintaan bantuan berhasil ditambahkan!');
-                });
-            }
+                }
+            );
         });
 
-        function logout() {
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('userData');
-            window.location.href = 'index.php';
+        // Delete request function
+        function deleteRequest(id) {
+            const request = studentData.requests.find(r => r.id === id);
+            if (request) {
+                showDeleteConfirmation(
+                    request.item,
+                    () => {
+                        studentData.requests = studentData.requests.filter(r => r.id !== id);
+                        showSection('requests');
+                    }
+                );
+            }
         }
+
+        // Upload proof function
+        function uploadProof(itemId) {
+            const fileInput = document.getElementById(`proof-${itemId}`);
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showWarningAlert('Peringatan', 'Silakan pilih file bukti terlebih dahulu.');
+                return;
+            }
+
+            showLoadingAlert('Mengupload Bukti...', 'Mohon tunggu sebentar');
+            
+            setTimeout(() => {
+                const item = studentData.received.find(r => r.id === itemId);
+                if (item) {
+                    item.proof = file.name;
+                }
+                
+                Swal.close();
+                showSuccessAlert('Berhasil!', 'Bukti penggunaan telah berhasil diupload.');
+                showSection('validation');
+            }, 2000);
+        }
+
+        // Logout function
+        function logout() {
+            // Simulate logout process
+            setTimeout(() => {
+                showSuccessAlert('Logout Berhasil', 'Terima kasih telah menggunakan Equalizer!', () => {
+                    window.location.href = 'index.php';
+                });
+            }, 1000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('welcomeText').textContent = `Welcome, ${studentData.name}!`;
+            document.getElementById('studentName').textContent = `Dashboard ${studentData.name}`;
+            showSection('profile');
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('addRequestModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
