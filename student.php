@@ -206,6 +206,12 @@
             color: #DC3545;
         }
 
+        .verification-status.unverified {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #FFC107;
+            color: #FFC107;
+        }
+
         .ai-analysis {
             background: rgba(59, 130, 246, 0.1);
             border: 1px solid #3B82F6;
@@ -415,13 +421,13 @@
         class DocumentVerifier {
             constructor() {
                 this.isProcessing = false;
+                this.studentName = studentData.name; // Expected student name
             }
 
             async analyzeDocument(file, documentType) {
                 this.isProcessing = true;
 
                 try {
-                    // Simulate AI processing
                     const analysisResult = await this.simulateAIAnalysis(file, documentType);
                     return analysisResult;
                 } catch (error) {
@@ -440,40 +446,283 @@
             async simulateAIAnalysis(file, documentType) {
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
-                const isKartuKeluargaValid = (file) => {
-                    // Check if file type is an image and file extension matches
-                    const validExtensions = ['.jpg', '.jpeg', '.png']; 
-                    const fileExtension = file.name.split('.').pop().toLowerCase();
-                    return validExtensions.includes(fileExtension);
-                };
+                // Simulate realistic document analysis
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                const validImageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+                
+                // Check if file is an image
+                if (!validImageExtensions.includes(fileExtension)) {
+                    return {
+                        isValid: false,
+                        confidence: 0,
+                        issues: ['File harus berupa gambar (JPG, PNG, WEBP)'],
+                        details: {}
+                    };
+                }
 
-                const mockResults = {
-                    // Simulated results for KTP (always valid)
-                    ktp: {
-                        isValid: true, // Always valid
-                        confidence: 100, // Maximum confidence
-                        issues: [],
-                        details: {
-                            hasPhoto: true,
-                            hasSignature: true,
-                            textClarity: 'good',
-                            documentIntegrity: 'intact',
-                            hologramDetected: true,
-                            fontConsistency: 'consistent',
-                            nameMatch: 'name matches'
-                        }
-                    },
-                    // Simulated results for Kartu Keluarga
-                    kartuKeluarga: {
-                        isValid: isKartuKeluargaValid(file), // Valid only if it's a valid Kartu Keluarga file
-                        confidence: isKartuKeluargaValid(file) ? 100 : 0, // 100 if valid, 0 if invalid
-                        issues: isKartuKeluargaValid(file) ? [] : ['File bukan Kartu Keluarga yang valid'],
-                        details: isKartuKeluargaValid(file) ? { familyMemberVerified: 'student name found' } : {}
+                // Check file size (simulate checking if image is too small/large)
+                if (file.size < 50000) { // Less than 50KB
+                    return {
+                        isValid: false,
+                        confidence: 15,
+                        issues: ['Ukuran file terlalu kecil, kemungkinan kualitas gambar rendah'],
+                        details: { fileSize: 'too small' }
+                    };
+                }
+
+                if (file.size > 10000000) { // More than 10MB
+                    return {
+                        isValid: false,
+                        confidence: 20,
+                        issues: ['Ukuran file terlalu besar, mohon kompres terlebih dahulu'],
+                        details: { fileSize: 'too large' }
+                    };
+                }
+
+                // Simulate advanced AI document verification
+                return this.performDetailedAnalysis(file, documentType);
+            }
+
+            performDetailedAnalysis(file, documentType) {
+                const fileName = file.name.toLowerCase();
+                const issues = [];
+                let confidence = 0;
+                let isValid = false;
+                const details = {};
+
+                switch (documentType) {
+                    case 'ktp':
+                        return this.analyzeKTP(file, fileName);
+                    case 'kartuKeluarga':
+                        return this.analyzeKartuKeluarga(file, fileName);
+                    case 'sertifikatSekolah':
+                        return this.analyzeSertifikat(file, fileName);
+                    default:
+                        return {
+                            isValid: false,
+                            confidence: 0,
+                            issues: ['Jenis dokumen tidak dikenali'],
+                            details: {}
+                        };
+                }
+            }
+
+            analyzeKTP(file, fileName) {
+                const issues = [];
+                let confidence = 0;
+                const details = {};
+
+                // Simulate OCR and image analysis
+                const hasKTPInName = fileName.includes('ktp') || fileName.includes('identitas');
+                const simulatedNameDetection = this.simulateNameDetection(fileName);
+                const simulatedImageQuality = this.simulateImageQuality(file);
+                const simulatedDocumentAuthenticity = this.simulateDocumentAuthenticity();
+
+                // Check if filename suggests it's a KTP
+                if (hasKTPInName) {
+                    confidence += 20;
+                    details.filenameMatch = 'filename suggests KTP document';
+                } else {
+                    issues.push('Nama file tidak mengindikasikan dokumen KTP');
+                }
+
+                // Simulate name matching with profile
+                if (simulatedNameDetection.nameFound) {
+                    if (simulatedNameDetection.nameMatches) {
+                        confidence += 40;
+                        details.nameVerification = 'nama sesuai dengan profil';
+                    } else {
+                        confidence = Math.max(0, confidence - 30);
+                        issues.push(`Nama pada KTP (${simulatedNameDetection.detectedName}) tidak sesuai dengan nama profil (${this.studentName})`);
                     }
-                };
+                } else {
+                    confidence = Math.max(0, confidence - 25);
+                    issues.push('Nama tidak dapat dideteksi pada dokumen');
+                }
 
-                // Return predefined result for the requested document type
-                return mockResults[documentType] || mockResults.ktp;
+                // Simulate image quality check
+                if (simulatedImageQuality.isGood) {
+                    confidence += 20;
+                    details.imageQuality = 'kualitas gambar baik';
+                } else {
+                    issues.push('Kualitas gambar kurang jelas, mohon ambil foto dengan pencahayaan yang lebih baik');
+                }
+
+                // Simulate document authenticity
+                if (simulatedDocumentAuthenticity.authentic) {
+                    confidence += 20;
+                    details.documentAuthenticity = 'dokumen terdeteksi asli';
+                } else {
+                    confidence = Math.max(0, confidence - 40);
+                    issues.push('Dokumen terindikasi tidak asli atau telah dimanipulasi');
+                }
+
+                return {
+                    isValid: confidence >= 70 && issues.length === 0,
+                    confidence: Math.min(confidence, 100),
+                    issues: issues,
+                    details: details
+                };
+            }
+
+            analyzeKartuKeluarga(file, fileName) {
+                const issues = [];
+                let confidence = 0;
+                const details = {};
+
+                const hasKKInName = fileName.includes('kk') || fileName.includes('keluarga') || fileName.includes('family');
+                const simulatedFamilyVerification = this.simulateFamilyMemberVerification();
+                const simulatedImageQuality = this.simulateImageQuality(file);
+
+                if (hasKKInName) {
+                    confidence += 20;
+                    details.filenameMatch = 'filename suggests Kartu Keluarga';
+                } else {
+                    issues.push('Nama file tidak mengindikasikan Kartu Keluarga');
+                }
+
+                // Simulate family member verification
+                if (simulatedFamilyVerification.studentFound) {
+                    confidence += 50;
+                    details.familyVerification = `nama siswa ditemukan dalam daftar anggota keluarga`;
+                } else {
+                    confidence = Math.max(0, confidence - 40);
+                    issues.push(`Nama siswa (${this.studentName}) tidak ditemukan dalam Kartu Keluarga`);
+                }
+
+                if (simulatedImageQuality.isGood) {
+                    confidence += 20;
+                    details.imageQuality = 'kualitas gambar baik';
+                } else {
+                    issues.push('Kualitas gambar kurang jelas');
+                }
+
+                // Additional KK-specific checks
+                const hasValidHeader = Math.random() > 0.3;
+                if (hasValidHeader) {
+                    confidence += 10;
+                    details.headerCheck = 'header dokumen valid';
+                } else {
+                    issues.push('Header Kartu Keluarga tidak terdeteksi atau tidak sesuai format');
+                }
+
+                return {
+                    isValid: confidence >= 70 && issues.length === 0,
+                    confidence: Math.min(confidence, 100),
+                    issues: issues,
+                    details: details
+                };
+            }
+
+            analyzeSertifikat(file, fileName) {
+                const issues = [];
+                let confidence = 0;
+                const details = {};
+
+                const hasCertInName = fileName.includes('sertifikat') || fileName.includes('certificate') || fileName.includes('ijazah');
+                const simulatedNameDetection = this.simulateNameDetection(fileName);
+                const simulatedImageQuality = this.simulateImageQuality(file);
+
+                if (hasCertInName) {
+                    confidence += 25;
+                    details.filenameMatch = 'filename suggests certificate document';
+                } else {
+                    issues.push('Nama file tidak mengindikasikan sertifikat atau ijazah');
+                }
+
+                if (simulatedNameDetection.nameFound && simulatedNameDetection.nameMatches) {
+                    confidence += 40;
+                    details.nameVerification = 'nama sesuai dengan profil';
+                } else {
+                    issues.push('Nama pada sertifikat tidak sesuai dengan profil');
+                }
+
+                if (simulatedImageQuality.isGood) {
+                    confidence += 20;
+                    details.imageQuality = 'kualitas gambar baik';
+                } else {
+                    issues.push('Kualitas gambar kurang jelas');
+                }
+
+                // School verification
+                const schoolMatch = Math.random() > 0.4;
+                if (schoolMatch) {
+                    confidence += 15;
+                    details.schoolVerification = 'sekolah terverifikasi';
+                } else {
+                    issues.push('Nama sekolah pada sertifikat tidak sesuai dengan profil');
+                }
+
+                return {
+                    isValid: confidence >= 70 && issues.length === 0,
+                    confidence: Math.min(confidence, 100),
+                    issues: issues,
+                    details: details
+                };
+            }
+
+            simulateNameDetection(fileName) {
+                // Simulate more realistic name detection
+                const commonNames = ['ahmad', 'budi', 'siti', 'andi', 'dewi', 'rizki', 'putri', 'joko'];
+                const studentNameLower = this.studentName.toLowerCase();
+                const fileNameLower = fileName.toLowerCase();
+                
+                // Check if any part of student name is in filename
+                const studentNameParts = studentNameLower.split(' ');
+                const nameInFilename = studentNameParts.some(part => fileNameLower.includes(part));
+                
+                if (nameInFilename) {
+                    // 80% chance the name matches if it's in filename
+                    const nameMatches = Math.random() > 0.2;
+                    return {
+                        nameFound: true,
+                        nameMatches: nameMatches,
+                        detectedName: nameMatches ? this.studentName : this.generateRandomName()
+                    };
+                } else {
+                    // Simulate detecting a different name
+                    return {
+                        nameFound: Math.random() > 0.3,
+                        nameMatches: false,
+                        detectedName: this.generateRandomName()
+                    };
+                }
+            }
+
+            simulateFamilyMemberVerification() {
+                // More realistic family verification
+                const random = Math.random();
+                
+                if (random > 0.6) {
+                    return { studentFound: true };
+                } else {
+                    return { studentFound: false };
+                }
+            }
+
+            simulateImageQuality(file) {
+                // Consider file size as quality indicator
+                const goodQuality = file.size > 200000 && file.size < 5000000; // 200KB - 5MB
+                return {
+                    isGood: goodQuality && Math.random() > 0.3
+                };
+            }
+
+            simulateDocumentAuthenticity() {
+                // 70% chance document is authentic
+                return {
+                    authentic: Math.random() > 0.3
+                };
+            }
+
+            generateRandomName() {
+                const firstNames = ['Budi', 'Siti', 'Ahmad', 'Dewi', 'Andi', 'Putri', 'Joko', 'Maya'];
+                const lastNames = ['Santoso', 'Wijaya', 'Kusuma', 'Pratama', 'Sari', 'Putra', 'Indra', 'Lestari'];
+                
+                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                
+                return `${firstName} ${lastName}`;
             }
         }
 
@@ -549,7 +798,6 @@
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Show loading
                     Swal.fire({
                         title: 'Logging out...',
                         text: 'Mohon tunggu sebentar',
@@ -559,7 +807,6 @@
                         }
                     });
                     
-                    // Simulate logout process
                     setTimeout(() => {
                         logout();
                     }, 1500);
@@ -609,8 +856,71 @@
             });
         }
 
+        // Helper functions
+        function getVerificationStatusText(status) {
+            const statusTexts = {
+                'unverified': 'Belum Diverifikasi',
+                'pending': 'Sedang Diproses',
+                'verified': 'Terverifikasi',
+                'rejected': 'Ditolak'
+            };
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function getVerificationColor(status) {
+            const colors = {
+                'unverified': 'text-yellow-400',
+                'pending': 'text-blue-400',
+                'verified': 'text-green-400',
+                'rejected': 'text-red-400'
+            };
+            return colors[status] || 'text-gray-400';
+        }
+
+        function getVerificationIcon(status) {
+            const icons = {
+                'unverified': '⏳',
+                'pending': '🔄',
+                'verified': '✅',
+                'rejected': '❌'
+            };
+            return icons[status] || '?';
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('addRequestModal').classList.remove('show');
+            document.getElementById('addRequestForm').reset();
+        }
+
+        function openModal() {
+            if (studentData.verificationStatus !== 'verified') {
+                showWarningAlert('Verifikasi Diperlukan', 'Anda harus memverifikasi dokumen terlebih dahulu sebelum dapat mengajukan bantuan.');
+                return;
+            }
+            document.getElementById('addRequestModal').classList.add('show');
+        }
+
+        function logout() {
+            window.location.href = 'index.php';
+        }
+
         function showSection(section) {
-            // Update active button
             document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
             document.getElementById(section + '-btn').classList.add('active');
             
@@ -619,7 +929,6 @@
             switch(section) {
                 case 'profile':
                     content.innerHTML = `
-                        <!-- Verification Alert -->
                         ${studentData.verificationStatus !== 'verified' ? ` 
                             <div class="verification-status ${studentData.verificationStatus} mb-6">
                                 <div class="flex items-center space-x-2">
@@ -642,7 +951,6 @@
                             </div>
                         ` : ''}
                         
-                        <!-- Stats Cards -->
                         <div class="grid md:grid-cols-3 gap-6 mb-8">
                             <div class="card rounded-xl p-6">
                                 <div class="flex items-center justify-between">
@@ -650,7 +958,7 @@
                                         <h3 class="text-lg font-semibold">Total Permintaan</h3>
                                         <p class="text-2xl font-bold text-yellow-400">${studentData.requests.length}</p>
                                     </div>
-                                    <div class="text-3xl"></div>
+                                    <div class="text-3xl">📝</div>
                                 </div>
                             </div>
                             <div class="card rounded-xl p-6">
@@ -659,7 +967,7 @@
                                         <h3 class="text-lg font-semibold">Bantuan Diterima</h3>
                                         <p class="text-2xl font-bold text-blue-400">${studentData.received.length}</p>
                                     </div>
-                                    <div class="text-3xl"></div>
+                                    <div class="text-3xl">🎁</div>
                                 </div>
                             </div>
                             <div class="card rounded-xl p-6">
@@ -673,7 +981,6 @@
                             </div>
                         </div>
 
-                        <!-- Profile Form -->
                         <div class="card rounded-xl p-8">
                             <h3 class="text-2xl font-bold mb-6">Profil Saya</h3>
                             <form id="profileForm" class="space-y-4">
@@ -698,104 +1005,86 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-2">Nomor Rekening:</label>
+                                    <label class="block text-sm font-medium mb-2">Rekening Bank:</label>
                                     <input type="text" value="${studentData.bankAccount}" class="input-field">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-2">Cerita Singkat:</label>
-                                    <textarea rows="4" class="input-field">${studentData.story}</textarea>
+                                    <label class="block text-sm font-medium mb-2">Cerita Pribadi:</label>
+                                    <textarea class="input-field h-24">${studentData.story}</textarea>
                                 </div>
                                 <button type="submit" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
-                                    Update Profil
+                                    Simpan Perubahan
                                 </button>
                             </form>
                         </div>
                     `;
-
-                    // Add event listener for profile form
-                    document.getElementById('profileForm').addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        showConfirmDialog(
-                            'Update Profil?',
-                            'Apakah Anda yakin ingin menyimpan perubahan profil?',
-                            () => {
-                                showLoadingAlert('Menyimpan Profil...', 'Mohon tunggu sebentar');
-                                setTimeout(() => {
-                                    Swal.close();
-                                    showSuccessAlert('Berhasil!', 'Profil Anda telah berhasil diperbarui.');
-                                }, 2000);
-                            }
-                        );
-                    });
                     break;
 
                 case 'verification':
                     content.innerHTML = `
-                        <h3 class="text-2xl font-bold mb-4">Verifikasi Dokumen dengan AI</h3>
-                        <p class="mb-6 opacity-80">Upload dokumen identitas Anda untuk diverifikasi menggunakan sistem AI kami. Sistem akan menganalisis keaslian dokumen secara otomatis.</p>
+                        <div class="card rounded-xl p-8 mb-6">
+                            <h3 class="text-2xl font-bold mb-6">Verifikasi Dokumen</h3>
+                            <div class="verification-status ${studentData.verificationStatus} mb-6">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-2xl">${getVerificationIcon(studentData.verificationStatus)}</span>
+                                    <div>
+                                        <h4 class="font-bold">Status: ${getVerificationStatusText(studentData.verificationStatus)}</h4>
+                                        <p class="text-sm mt-1">
+                                            ${studentData.verificationStatus === 'unverified' ? 
+                                                'Upload dokumen yang diperlukan untuk verifikasi identitas.' :
+                                                studentData.verificationStatus === 'pending' ?
+                                                'Dokumen sedang dianalisis oleh AI. Proses biasanya memakan waktu 1-5 menit.' :
+                                                studentData.verificationStatus === 'verified' ?
+                                                'Selamat! Dokumen Anda telah terverifikasi.' :
+                                                'Dokumen ditolak. Silakan perbaiki dan upload ulang.'
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-6">
+                                <div class="border border-gray-600 rounded-lg p-4">
+                                    <h4 class="font-semibold mb-3">📄 KTP/Kartu Identitas</h4>
+                                    <input type="file" id="ktpFile" accept="image/*" class="input-field mb-3">
+                                    <button onclick="uploadDocument('ktp')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                        Upload KTP
+                                    </button>
+                                </div>
+                                
+                                <div class="border border-gray-600 rounded-lg p-4">
+                                    <h4 class="font-semibold mb-3">👨‍👩‍👧‍👦 Kartu Keluarga</h4>
+                                    <input type="file" id="kkFile" accept="image/*" class="input-field mb-3">
+                                    <button onclick="uploadDocument('kartuKeluarga')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                        Upload Kartu Keluarga
+                                    </button>
+                                </div>
+                                
+                                <div class="border border-gray-600 rounded-lg p-4">
+                                    <h4 class="font-semibold mb-3">🎓 Sertifikat Sekolah</h4>
+                                    <input type="file" id="sertifikatFile" accept="image/*" class="input-field mb-3">
+                                    <button onclick="uploadDocument('sertifikatSekolah')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                        Upload Sertifikat
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         
-                        <!-- Current Status -->
-                        <div class="verification-status ${studentData.verificationStatus} mb-8">
-                            <div class="flex items-center space-x-3">
-                                <span class="text-3xl">${getVerificationIcon(studentData.verificationStatus)}</span>
-                                <div>
-                                    <h4 class="text-xl font-bold">Status: ${getVerificationStatusText(studentData.verificationStatus)}</h4>
-                                    <p class="text-sm mt-1">
-                                        ${getVerificationDescription(studentData.verificationStatus)}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Document Upload Forms -->
-                        <div class="grid md:grid-cols-2 gap-6">
-                            <!-- KTP Upload -->
-                            <div class="card rounded-xl p-6">
-                                <h4 class="text-lg font-bold mb-4 flex items-center">
-                                    <span class="mr-2">🆔</span>
-                                    Kartu Tanda Penduduk (KTP)
-                                </h4>
-                                <div class="mb-4">
-                                    <input type="file" id="ktpFile" accept="image/*" class="input-field">
-                                    <p class="text-xs mt-2 opacity-70">Format: JPG, PNG (Maks. 5MB)</p>
-                                </div>
-                                <button onclick="uploadDocument('ktp')" class="w-full bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                                    Upload & Verifikasi KTP
-                                </button>
-                                <div id="ktpAnalysis" class="mt-4"></div>
-                            </div>
-
-                            <!-- Kartu Keluarga Upload -->
-                            <div class="card rounded-xl p-6">
-                                <h4 class="text-lg font-bold mb-4 flex items-center">
-                                    <span class="mr-2">👨‍👩‍👧‍👦</span>
-                                    Kartu Keluarga
-                                </h4>
-                                <div class="mb-4">
-                                    <input type="file" id="kartuKeluargaFile" accept="image/*" class="input-field">
-                                    <p class="text-xs mt-2 opacity-70">Format: JPG, PNG (Maks. 5MB)</p>
-                                </div>
-                                <button onclick="uploadDocument('kartuKeluarga')" class="w-full bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                                    Upload & Verifikasi KK
-                                </button>
-                                <div id="kartuKeluargaAnalysis" class="mt-4"></div>
-                            </div>
-                        </div>
-
-                        <!-- Verification History -->
                         ${studentData.verificationHistory.length > 0 ? `
-                            <div class="card rounded-xl p-6 mt-8">
-                                <h4 class="text-xl font-bold mb-4">Riwayat Verifikasi</h4>
+                            <div class="card rounded-xl p-8">
+                                <h3 class="text-xl font-bold mb-4">Riwayat Verifikasi</h3>
                                 <div class="space-y-4">
                                     ${studentData.verificationHistory.map(history => `
                                         <div class="border border-gray-600 rounded-lg p-4">
                                             <div class="flex justify-between items-start mb-2">
-                                                <h5 class="font-semibold">${history.type}</h5>
+                                                <h4 class="font-semibold">${history.type}</h4>
                                                 <span class="badge ${history.status}">${history.status}</span>
                                             </div>
-                                            <p class="text-sm mb-2">Tanggal: ${formatDate(history.date)}</p>
-                                            <p class="text-sm mb-2">Skor AI: ${history.aiScore}/100</p>
-                                            ${history.reason ? `<p class="text-sm text-red-400">Alasan: ${history.reason}</p>` : ''}
+                                            <p class="text-sm text-gray-300 mb-2">Tanggal: ${formatDate(history.date)}</p>
+                                            <p class="text-sm">${history.reason}</p>
+                                            <div class="mt-2">
+                                                <span class="text-xs text-blue-400">AI Score: ${history.aiScore}%</span>
+                                            </div>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -807,67 +1096,62 @@
                 case 'requests':
                     content.innerHTML = `
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-2xl font-bold">Permintaan Bantuan Saya</h3>
-                            ${studentData.verificationStatus === 'verified' ? `
-                                <button onclick="openModal()" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
-                                    + Tambah Permintaan
-                                </button>
-                            ` : `
-                                <div class="text-right">
-                                    <button class="bg-gray-500 px-6 py-3 rounded-lg font-semibold cursor-not-allowed opacity-50" disabled>
-                                        + Tambah Permintaan
-                                    </button>
-                                    <p class="text-xs mt-1 text-red-400">Verifikasi dokumen terlebih dahulu</p>
-                                </div>
-                            `}
+                            <h3 class="text-2xl font-bold">Permintaan Bantuan</h3>
+                            <button onclick="openModal()" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                                + Tambah Permintaan
+                            </button>
                         </div>
-
-                        ${studentData.requests.length === 0 ? `
-                            <div class="card rounded-xl p-8 text-center">
-                                <div class="text-6xl mb-4">📝</div>
-                                <h4 class="text-xl font-bold mb-2">Belum Ada Permintaan</h4>
-                                <p class="opacity-70 mb-4">Anda belum membuat permintaan bantuan. Mulai dengan menambah permintaan baru.</p>
-                                ${studentData.verificationStatus === 'verified' ? `
-                                    <button onclick="openModal()" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
-                                        Tambah Permintaan Pertama
-                                    </button>
-                                ` : `
-                                    <p class="text-red-400 text-sm">Silakan verifikasi dokumen terlebih dahulu</p>
-                                `}
-                            </div>
-                        ` : `
-                            <div class="grid gap-6">
-                                ${studentData.requests.map(request => `
-                                    <div class="card rounded-xl p-6">
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h4 class="text-xl font-bold">${request.item}</h4>
-                                                <p class="opacity-80">${request.detail}</p>
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                <span class="badge ${request.status}">${getStatusText(request.status)}</span>
-                                                <button onclick="deleteRequest(${request.id})" class="text-red-400 hover:text-red-300 p-1">
-                                                    🗑️
-                                                </button>
-                                            </div>
+                        
+                        <div class="grid gap-6">
+                            ${studentData.requests.map(request => `
+                                <div class="card rounded-xl p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="text-xl font-semibold">${request.item}</h4>
+                                            <p class="text-gray-300 mt-1">${request.detail}</p>
                                         </div>
-                                        <div class="mb-4">
-                                            <div class="flex justify-between text-sm mb-2">
-                                                <span>Progress: ${request.progress}%</span>
-                                                <span>Rp ${request.collected.toLocaleString()} / Rp ${request.amount.toLocaleString()}</span>
-                                            </div>
-                                            <div class="progress-bar">
-                                                <div class="progress-fill" style="width: ${request.progress}%"></div>
-                                            </div>
-                                        </div>
-                                        <div class="flex justify-between items-center text-sm">
-                                            <span>Target: Rp ${request.amount.toLocaleString()}</span>
-                                            <span>Sisa: Rp ${(request.amount - request.collected).toLocaleString()}</span>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="badge ${request.status}">${request.status}</span>
+                                            <button onclick="showDeleteConfirmation('${request.item}', () => deleteRequest(${request.id}))" class="text-red-400 hover:text-red-300">
+                                                🗑️
+                                            </button>
                                         </div>
                                     </div>
-                                `).join('')}
+                                    
+                                    <div class="mb-4">
+                                        <div class="flex justify-between text-sm mb-2">
+                                            <span>Progress</span>
+                                            <span>${request.progress}%</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: ${request.progress}%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <span class="text-sm text-gray-300">Target: </span>
+                                            <span class="font-semibold">${formatCurrency(request.amount)}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm text-gray-300">Terkumpul: </span>
+                                            <span class="font-semibold text-green-400">${formatCurrency(request.collected)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        ${studentData.requests.length === 0 ? `
+                            <div class="text-center py-12">
+                                <div class="text-6xl mb-4">📝</div>
+                                <h3 class="text-xl font-semibold mb-2">Belum Ada Permintaan</h3>
+                                <p class="text-gray-300 mb-4">Mulai dengan menambahkan permintaan bantuan pertama Anda</p>
+                                <button onclick="openModal()" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                                    Tambah Permintaan
+                                </button>
                             </div>
-                        `}
+                        ` : ''}
                     `;
                     break;
 
@@ -875,80 +1159,97 @@
                     content.innerHTML = `
                         <h3 class="text-2xl font-bold mb-6">Bantuan yang Diterima</h3>
                         
-                        ${studentData.received.length === 0 ? `
-                            <div class="card rounded-xl p-8 text-center">
-                                <div class="text-6xl mb-4">🎁</div>
-                                <h4 class="text-xl font-bold mb-2">Belum Ada Bantuan Diterima</h4>
-                                <p class="opacity-70">Bantuan yang Anda terima akan muncul di sini.</p>
-                            </div>
-                        ` : `
-                            <div class="grid gap-6">
-                                ${studentData.received.map(item => `
-                                    <div class="card rounded-xl p-6">
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h4 class="text-xl font-bold">${item.item}</h4>
-                                                <p class="opacity-80">Dari: ${item.donor}</p>
-                                                <p class="text-sm opacity-70">Tanggal: ${formatDate(item.date)}</p>
-                                            </div>
-                                            <div class="text-right">
-                                                <div class="text-2xl font-bold text-green-400">Rp ${item.amount.toLocaleString()}</div>
-                                                <span class="badge ${item.status}">${getStatusText(item.status)}</span>
-                                            </div>
+                        <div class="grid gap-6">
+                            ${studentData.received.map(item => `
+                                <div class="card rounded-xl p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="text-xl font-semibold">${item.item}</h4>
+                                            <p class="text-gray-300 mt-1">Dari: ${item.donor}</p>
                                         </div>
-                                        ${item.proof ? `
-                                            <div class="mt-4">
-                                                <p class="text-sm font-semibold mb-2">Bukti Penggunaan:</p>
-                                                <div class="bg-gray-700 p-3 rounded-lg text-sm">
-                                                    📷 ${item.proof}
-                                                </div>
-                                            </div>
-                                        ` : ''}
+                                        <span class="badge ${item.status}">${item.status}</span>
                                     </div>
-                                `).join('')}
+                                    
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <span class="text-sm text-gray-300">Jumlah: </span>
+                                            <span class="font-semibold text-green-400">${formatCurrency(item.amount)}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm text-gray-300">Tanggal: </span>
+                                            <span class="font-semibold">${formatDate(item.date)}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    ${item.proof ? `
+                                        <div class="mt-4">
+                                            <button onclick="viewProof('${item.proof}')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm transition-colors">
+                                                Lihat Bukti
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        ${studentData.received.length === 0 ? `
+                            <div class="text-center py-12">
+                                <div class="text-6xl mb-4">🎁</div>
+                                <h3 class="text-xl font-semibold mb-2">Belum Ada Bantuan</h3>
+                                <p class="text-gray-300">Bantuan yang Anda terima akan muncul di sini</p>
                             </div>
-                        `}
+                        ` : ''}
                     `;
                     break;
 
                 case 'validation':
                     content.innerHTML = `
-                        <h3 class="text-2xl font-bold mb-4">Upload Bukti Penggunaan</h3>
-                        <p class="mb-6 opacity-80">Upload bukti penggunaan dana bantuan yang telah Anda terima.</p>
+                        <h3 class="text-2xl font-bold mb-6">Upload Bukti Penggunaan</h3>
                         
-                        ${studentData.received.filter(item => !item.proof).length === 0 ? `
-                            <div class="card rounded-xl p-8 text-center">
-                                <div class="text-6xl mb-4">✅</div>
-                                <h4 class="text-xl font-bold mb-2">Semua Bukti Sudah Diupload</h4>
-                                <p class="opacity-70">Tidak ada bantuan yang memerlukan bukti penggunaan saat ini.</p>
+                        <div class="card rounded-xl p-8 mb-6">
+                            <h4 class="text-lg font-semibold mb-4">Upload Bukti untuk Bantuan yang Diterima</h4>
+                            <p class="text-gray-300 mb-6">Upload foto atau dokumen sebagai bukti bahwa bantuan telah digunakan sesuai tujuan.</p>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Pilih Bantuan:</label>
+                                    <select class="input-field" id="validationItem">
+                                        <option value="">Pilih bantuan yang sudah diterima</option>
+                                        ${studentData.received.map(item => `
+                                            <option value="${item.id}">${item.item} - ${formatCurrency(item.amount)}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Upload Bukti:</label>
+                                    <input type="file" id="proofFile" accept="image/*,video/*,.pdf" class="input-field">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Keterangan:</label>
+                                    <textarea id="proofDescription" class="input-field h-24" placeholder="Jelaskan bagaimana bantuan telah digunakan"></textarea>
+                                </div>
+                                
+                                <button onclick="submitProof()" class="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                                    Upload Bukti
+                                </button>
                             </div>
-                        ` : `
-                            <div class="grid gap-6">
-                                ${studentData.received.filter(item => !item.proof).map(item => `
-                                    <div class="card rounded-xl p-6">
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h4 class="text-xl font-bold">${item.item}</h4>
-                                                <p class="opacity-80">Bantuan dari: ${item.donor}</p>
-                                                <p class="text-lg font-semibold text-green-400">Rp ${item.amount.toLocaleString()}</p>
-                                            </div>
-                                            <span class="badge pending">Perlu Bukti</span>
-                                        </div>
-                                        <div class="mt-4">
-                                            <label class="block text-sm font-medium mb-2">Upload Bukti Penggunaan:</label>
-                                            <input type="file" id="proof-${item.id}" accept="image/*" class="input-field mb-3">
-                                            <button onclick="uploadProof(${item.id})" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                                                Upload Bukti
-                                            </button>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `}
+                        </div>
+                        
+                        <div class="card rounded-xl p-8">
+                            <h4 class="text-lg font-semibold mb-4">Tips Upload Bukti:</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-300">
+                                <li>Pastikan foto jelas dan tidak blur</li>
+                                <li>Sertakan tanggal dan waktu jika memungkinkan</li>
+                                <li>Upload nota pembelian jika ada</li>
+                                <li>Berikan keterangan yang detail tentang penggunaan bantuan</li>
+                            </ul>
+                        </div>
                     `;
                     break;
 
-               case 'courses':
+                case 'courses':
                     content.innerHTML = `
   <div class="mb-6">
     <h3 class="text-2xl font-bold mb-2">Belajar Bersama Volunteer</h3>
@@ -1011,269 +1312,162 @@
             }
         }
 
-        // Helper functions
-        function getVerificationStatusText(status) {
-            const statusMap = {
-                'unverified': 'Belum Diverifikasi',
-                'pending': 'Sedang Diproses',
-                'verified': 'Terverifikasi',
-                'rejected': 'Ditolak'
-            };
-            return statusMap[status] || status;
-        }
-
-        function getVerificationColor(status) {
-            const colorMap = {
-                'unverified': 'text-red-400',
-                'pending': 'text-yellow-400',
-                'verified': 'text-green-400',
-                'rejected': 'text-red-400'
-            };
-            return colorMap[status] || 'text-gray-400';
-        }
-
-        function getVerificationIcon(status) {
-            const iconMap = {
-                'unverified': '❌',
-                'pending': '⏳',
-                'verified': '✅',
-                'rejected': '❌'
-            };
-            return iconMap[status] || '❓';
-        }
-
-        function getVerificationDescription(status) {
-            const descriptionMap = {
-                'unverified': 'Silakan upload dokumen KTP dan Kartu Keluarga untuk memulai proses verifikasi.',
-                'pending': 'Dokumen Anda sedang dianalisis oleh sistem AI. Proses ini biasanya memakan waktu beberapa menit.',
-                'verified': 'Dokumen Anda telah terverifikasi. Anda dapat mengajukan bantuan sekarang.',
-                'rejected': 'Dokumen Anda tidak memenuhi kriteria verifikasi. Silakan upload ulang dengan kualitas yang lebih baik.'
-            };
-            return descriptionMap[status] || 'Status tidak diketahui.';
-        }
-
-        function getStatusText(status) {
-            const statusMap = {
-                'urgent': 'Mendesak',
-                'pending': 'Menunggu',
-                'completed': 'Selesai'
-            };
-            return statusMap[status] || status;
-        }
-
-        function formatDate(dateString) {
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString('id-ID', options);
-        }
-
-        // Document upload and verification
-        async function uploadDocument(docType) {
-            const fileInput = document.getElementById(docType + 'File');
+        // Document upload functions
+        async function uploadDocument(type) {
+            const fileInput = document.getElementById(`${type === 'kartuKeluarga' ? 'kk' : type}File`);
             const file = fileInput.files[0];
             
             if (!file) {
-                showWarningAlert('Peringatan', 'Silakan pilih file terlebih dahulu.');
+                showWarningAlert('File Diperlukan', 'Silakan pilih file terlebih dahulu.');
                 return;
             }
-
-            const maxSize = 5 * 1024 * 1024; // 5MB
-            if (file.size > maxSize) {
-                showErrorAlert('File Terlalu Besar', 'Ukuran file maksimal 5MB.');
-                return;
+            
+            // Show loading
+            showLoadingAlert('Memproses Dokumen', 'AI sedang menganalisis dokumen Anda...');
+            
+            try {
+                // Analyze document with AI
+                const analysis = await documentVerifier.analyzeDocument(file, type);
+                
+                // Close loading
+                Swal.close();
+                
+                // Show analysis result
+                showAnalysisResult(type, analysis);
+                
+                // Update verification status
+                if (analysis.isValid) {
+                    studentData.documents[type] = file.name;
+                    checkAllDocumentsUploaded();
+                } else {
+                    // Add to verification history
+                    studentData.verificationHistory.unshift({
+                        date: new Date().toISOString().split('T')[0],
+                        type: type.toUpperCase(),
+                        status: 'rejected',
+                        reason: analysis.issues.join(', '),
+                        aiScore: analysis.confidence
+                    });
+                    studentData.verificationStatus = 'rejected';
+                }
+                
+                // Refresh the verification section
+                showSection('verification');
+                
+            } catch (error) {
+                Swal.close();
+                showErrorAlert('Error', 'Terjadi kesalahan saat memproses dokumen.');
             }
+        }
 
-            const analysisDiv = document.getElementById(docType + 'Analysis');
-            analysisDiv.innerHTML = `
+        function showAnalysisResult(type, analysis) {
+            const title = analysis.isValid ? 'Dokumen Valid!' : 'Dokumen Ditolak';
+            const icon = analysis.isValid ? 'success' : 'error';
+            
+            let content = `
                 <div class="ai-analysis">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <div class="spinner"></div>
-                        <span class="font-semibold">🤖 AI sedang menganalisis dokumen...</span>
-                    </div>
-                    <p class="text-sm opacity-80">Sistem AI sedang memverifikasi keaslian dan kevalidan dokumen Anda.</p>
+                    <h4 class="font-bold mb-2">🤖 Analisis AI:</h4>
+                    <p><strong>Confidence Score:</strong> ${analysis.confidence}%</p>
+                    ${analysis.issues.length > 0 ? `
+                        <p><strong>Issues:</strong></p>
+                        <ul class="list-disc list-inside ml-4">
+                            ${analysis.issues.map(issue => `<li>${issue}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    ${Object.keys(analysis.details).length > 0 ? `
+                        <p><strong>Details:</strong></p>
+                        <ul class="list-disc list-inside ml-4">
+                            ${Object.entries(analysis.details).map(([key, value]) => `<li>${key}: ${value}</li>`).join('')}
+                        </ul>
+                    ` : ''}
                 </div>
             `;
+            
+            Swal.fire({
+                icon: icon,
+                title: title,
+                html: content,
+                confirmButtonText: 'OK'
+            });
+        }
 
-            try {
-                const result = await documentVerifier.analyzeDocument(file, docType);
-                
-                analysisDiv.innerHTML = `
-                    <div class="ai-analysis">
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="font-semibold">🤖 Hasil Analisis AI</span>
-                            <span class="badge ${result.isValid ? 'verified' : 'rejected'}">
-                                ${result.isValid ? 'Valid' : 'Invalid'}
-                            </span>
-                        </div>
-                        <div class="mb-3">
-                            <div class="flex justify-between text-sm mb-1">
-                                <span>Confidence Score</span>
-                                <span>${result.confidence}%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${result.confidence}%"></div>
-                            </div>
-                        </div>
-                        ${result.issues.length > 0 ? `
-                            <div class="mb-3">
-                                <p class="text-sm font-semibold text-red-400 mb-1">Issues Found:</p>
-                                <ul class="text-sm space-y-1">
-                                    ${result.issues.map(issue => `<li class="text-red-400">• ${issue}</li>`).join('')}
-                                </ul>
-                            </div>
-                        ` : ''}
-                        <div class="text-xs opacity-70">
-                            <p>Analysis Details: ${Object.entries(result.details).map(([key, value]) => `${key}: ${value}`).join(', ')}</p>
-                        </div>
-                    </div>
-                `;
-
-                if (result.isValid) {
-                    studentData.documents[docType] = file.name;
-                    
-                    // Add to verification history
-                    studentData.verificationHistory.push({
-                        date: new Date().toISOString().split('T')[0],
-                        type: docType.toUpperCase(),
-                        status: 'verified',
-                        reason: null,
-                        aiScore: result.confidence
-                    });
-
-                    // Check if all required documents are verified
-                    const requiredDocs = ['ktp', 'kartuKeluarga'];
-                    const verifiedDocs = requiredDocs.filter(doc => studentData.documents[doc]);
-                    
-                    if (verifiedDocs.length === requiredDocs.length) {
-                        studentData.verificationStatus = 'verified';
-                        setTimeout(() => {
-                            showVerificationSuccess();
-                        }, 1000);
-                    }
-                    
-                    showSuccessAlert('Dokumen Valid!', `${docType.toUpperCase()} Anda telah berhasil diverifikasi dengan skor ${result.confidence}%.`);
-                } else {
-                    studentData.verificationHistory.push({
-                        date: new Date().toISOString().split('T')[0],
-                        type: docType.toUpperCase(),
-                        status: 'rejected',
-                        reason: result.issues.join(', '),
-                        aiScore: result.confidence
-                    });
-                    
-                    showErrorAlert('Dokumen Invalid', `Dokumen ${docType.toUpperCase()} tidak memenuhi kriteria verifikasi. Silakan upload ulang dengan kualitas yang lebih baik.`);
-                }
-            } catch (error) {
-                analysisDiv.innerHTML = `
-                    <div class="ai-analysis">
-                        <div class="text-red-400">
-                            <span class="font-semibold">❌ Error Analysis</span>
-                            <p class="text-sm mt-1">Terjadi kesalahan saat menganalisis dokumen. Silakan coba lagi.</p>
-                        </div>
-                    </div>
-                `;
-                showErrorAlert('Error', 'Terjadi kesalahan saat menganalisis dokumen. Silakan coba lagi.');
+        function checkAllDocumentsUploaded() {
+            const requiredDocs = ['ktp', 'kartuKeluarga', 'sertifikatSekolah'];
+            const uploadedDocs = requiredDocs.filter(doc => studentData.documents[doc] !== null);
+            
+            if (uploadedDocs.length === requiredDocs.length) {
+                studentData.verificationStatus = 'verified';
+                showVerificationSuccess();
             }
         }
 
-        // Modal functions
-        function openModal() {
-            document.getElementById('addRequestModal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('addRequestModal').classList.remove('show');
-            document.getElementById('addRequestForm').reset();
-        }
-
-        // Add request form handler
-        document.getElementById('addRequestForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const newRequest = {
-                id: studentData.requests.length + 1,
-                item: document.getElementById('requestType').value === 'lainnya' ? 
-                      'Kebutuhan Lainnya' : 
-                      document.getElementById('requestType').options[document.getElementById('requestType').selectedIndex].text,
-                detail: document.getElementById('requestDetail').value,
-                amount: parseInt(document.getElementById('requestAmount').value),
-                status: document.getElementById('requestUrgency').value,
-                progress: 0,
-                collected: 0
-            };
-
-            showConfirmDialog(
-                'Tambah Permintaan?',
-                'Apakah Anda yakin ingin menambah permintaan bantuan ini?',
-                () => {
-                    studentData.requests.push(newRequest);
-                    closeModal();
-                    showSuccessAlert('Berhasil!', 'Permintaan bantuan telah ditambahkan.');
-                    showSection('requests');
-                }
-            );
-        });
-
-        // Delete request function
+        // Request management functions
         function deleteRequest(id) {
-            const request = studentData.requests.find(r => r.id === id);
-            if (request) {
-                showDeleteConfirmation(
-                    request.item,
-                    () => {
-                        studentData.requests = studentData.requests.filter(r => r.id !== id);
-                        showSection('requests');
-                    }
-                );
-            }
+            studentData.requests = studentData.requests.filter(req => req.id !== id);
+            showSection('requests');
         }
 
-        // Upload proof function
-        function uploadProof(itemId) {
-            const fileInput = document.getElementById(`proof-${itemId}`);
-            const file = fileInput.files[0];
+        function submitProof() {
+            const itemSelect = document.getElementById('validationItem');
+            const proofFile = document.getElementById('proofFile');
+            const description = document.getElementById('proofDescription');
             
-            if (!file) {
-                showWarningAlert('Peringatan', 'Silakan pilih file bukti terlebih dahulu.');
+            if (!itemSelect.value || !proofFile.files[0] || !description.value) {
+                showWarningAlert('Data Tidak Lengkap', 'Mohon lengkapi semua field yang diperlukan.');
                 return;
             }
-
-            showLoadingAlert('Mengupload Bukti...', 'Mohon tunggu sebentar');
             
-            setTimeout(() => {
-                const item = studentData.received.find(r => r.id === itemId);
-                if (item) {
-                    item.proof = file.name;
+            showSuccessAlert('Bukti Berhasil Diupload', 'Terima kasih! Bukti penggunaan bantuan telah berhasil diupload.', () => {
+                // Reset form
+                itemSelect.value = '';
+                proofFile.value = '';
+                description.value = '';
+            });
+        }
+
+        function viewProof(proofFile) {
+            showInfoAlert('Bukti Penggunaan', `Menampilkan bukti: ${proofFile}`);
+        }
+
+        // Form submission handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Profile form submission
+            document.addEventListener('submit', function(e) {
+                if (e.target.id === 'profileForm') {
+                    e.preventDefault();
+                    showSuccessAlert('Profil Disimpan', 'Perubahan profil berhasil disimpan.');
                 }
                 
-                Swal.close();
-                showSuccessAlert('Berhasil!', 'Bukti penggunaan telah berhasil diupload.');
-                showSection('validation');
-            }, 2000);
-        }
-
-        // Logout function
-        function logout() {
-            // Simulate logout process
-            setTimeout(() => {
-                showSuccessAlert('Logout Berhasil', 'Terima kasih telah menggunakan Equalizer!', () => {
-                    window.location.href = 'index.php';
-                });
-            }, 1000);
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('welcomeText').textContent = `Welcome, ${studentData.name}!`;
-            document.getElementById('studentName').textContent = `Dashboard ${studentData.name}`;
+                if (e.target.id === 'addRequestForm') {
+                    e.preventDefault();
+                    
+                    const type = document.getElementById('requestType').value;
+                    const detail = document.getElementById('requestDetail').value;
+                    const amount = parseInt(document.getElementById('requestAmount').value);
+                    const urgency = document.getElementById('requestUrgency').value;
+                    
+                    // Add new request
+                    const newRequest = {
+                        id: Date.now(),
+                        item: document.getElementById('requestType').options[document.getElementById('requestType').selectedIndex].text,
+                        detail: detail,
+                        amount: amount,
+                        status: urgency,
+                        progress: 0,
+                        collected: 0
+                    };
+                    
+                    studentData.requests.push(newRequest);
+                    closeModal();
+                    showSuccessAlert('Permintaan Ditambahkan', 'Permintaan bantuan berhasil ditambahkan.');
+                    showSection('requests');
+                }
+            });
+            
+            // Initialize the dashboard
             showSection('profile');
-        });
-
-        // Close modal when clicking outside
-        document.getElementById('addRequestModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
+            document.getElementById('studentName').textContent = studentData.name;
+            document.getElementById('welcomeText').textContent = `Welcome, ${studentData.name}!`;
         });
     </script>
 </body>
